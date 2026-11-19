@@ -88,6 +88,7 @@ code{background:#eef0f4;padding:1px 5px;border-radius:4px;font-size:12px}
 <div id="msg"></div>
 
 <section class="view on" id="v-painel">
+  <div class="row" style="margin-bottom:10px"><label>Período <select id="pSel"></select></label></div>
   <p class="meta" id="pMeta">Carregando…</p>
   <div class="grid" id="kpis"></div>
   <div class="two">
@@ -98,12 +99,14 @@ code{background:#eef0f4;padding:1px 5px;border-radius:4px;font-size:12px}
 </section>
 
 <section class="view" id="v-mensal">
+  <div class="row" style="margin-bottom:10px"><label>Período <select id="mSel"></select></label></div>
   <p class="meta" id="mMeta"></p>
   <div class="card"><h2>Despesa bruta com pessoal por mês (R$ milhões)</h2><div class="chart"><canvas id="chMes"></canvas></div></div>
   <div class="card" style="margin-top:12px"><div class="tbl" id="tMes"></div><p class="note">Linhas destacadas: meses acima de 125% da mediana (13º salário, férias, retroativos ou pagamentos extraordinários).</p></div>
 </section>
 
 <section class="view" id="v-rreo">
+  <div class="row" style="margin-bottom:10px"><label>Bimestre <select id="rSel"></select></label></div>
   <p class="meta" id="rMeta">Carregando…</p>
   <div class="grid" id="rKpis"></div>
   <div class="two">
@@ -491,7 +494,7 @@ function parseDCA(items, ano){
 function dcaAno(id, ano){ return api('dca',{an_exercicio:ano, id_ente:id}).then(function(it){ return parseDCA(it, ano); }); }
 
 /* ================= Estado e carga ================= */
-var S = {ente:null, E:[], L:[], rreo:null, dca:[], ents:[], comp:[], msc:null};
+var S = {ente:null, E:[], L:[], R:[], sel:0, rreo:null, dca:[], ents:[], comp:[], msc:null};
 function carregar(ente){
   S.ente = ente; S.E = []; S.L = []; S.rreo = null; S.dca = []; S.msc = null; S.ents = [];
   LS.set('siconfi_ente', ente.id);
@@ -502,7 +505,7 @@ function carregar(ente){
   $('mscMeta').textContent = '';
   msg('');
   var Y = new Date().getFullYear();
-  var pDca = pool([Y-1, Y-2, Y-3].map(function(a){ return function(){ return dcaAno(ente.id, a); }; }), 3).then(function(rs){
+  var pDca = pool([Y-1, Y-2, Y-3, Y-4].map(function(a){ return function(){ return dcaAno(ente.id, a); }; }), 3).then(function(rs){
     S.dca = rs.filter(function(d){ return d && !d.erro; }).sort(function(a,b){ return a.ano - b.ano; });
     renderDCA();
   }).catch(function(e){ $('dMeta').textContent = 'Falha ao ler a DCA: ' + (e.message || e); });
@@ -510,7 +513,9 @@ function carregar(ente){
     S.ents = ents;
     preencheMsc();
     var R = filtra(ents, 'RREO', 'E');
-    var pR = R.length ? rreo(ente.id, R[R.length-1]).then(function(it){ S.rreo = parseRREO(it, R[R.length-1]); renderRREO(); }).catch(function(e){ $('rMeta').textContent = 'Falha ao ler o RREO: ' + (e.message || e); }) : ($('rMeta').textContent = 'Nenhum RREO encontrado.', null);
+    S.R = R;
+    $('rSel').innerHTML = R.map(function(e, i){ return '<option value="' + i + '">' + e.p + 'º bimestre de ' + e.ano + '</option>'; }).reverse().join('');
+    var pR = R.length ? carregarRREO(R.length - 1) : ($('rMeta').textContent = 'Nenhum RREO encontrado.', null);
     var E = filtra(ents, 'RGF', 'E').slice(-10), L = filtra(ents, 'RGF', 'L').slice(-10);
     if (!E.length) throw new Error('Não encontrei RGF da Prefeitura de ' + nomeUF(ente) + ' nos últimos quatro anos.');
     $('pMeta').innerHTML = 'Lendo ' + (E.length + L.length) + ' relatórios de gestão fiscal de <b>' + esc(nomeUF(ente)) + '</b>…';
@@ -518,10 +523,20 @@ function carregar(ente){
     return pool(fns, 4).then(function(rs){
       rs.forEach(function(r){ if (r && !r.erro && r.dtpPct != null) (r.poder === 'E' ? S.E : S.L).push(r); });
       if (!S.E.length) throw new Error('Os RGF foram entregues, mas ainda não aparecem na base de dados abertos.');
+      S.sel = S.E.length - 1; preenchePeriodos();
       renderPainel(); renderMensal();
       return Promise.all([pR, pDca]);
     });
   }).catch(erro);
+}
+function carregarRREO(i){
+  var e = S.R[i]; if (!e) return null;
+  $('rSel').value = String(i); $('rMeta').textContent = 'Carregando o RREO do ' + e.p + 'º bimestre de ' + e.ano + '…';
+  return rreo(S.ente.id, e).then(function(it){ S.rreo = parseRREO(it, e); renderRREO(); }).catch(function(err){ $('rMeta').textContent = 'Falha ao ler o RREO: ' + (err.message || err); });
+}
+function preenchePeriodos(){
+  var o = S.E.map(function(r, i){ return '<option value="' + i + '">' + r.label + '</option>'; }).reverse().join('');
+  $('pSel').innerHTML = o; $('mSel').innerHTML = o; $('pSel').value = $('mSel').value = String(S.sel);
 }
 function msg(html, cls){ $('msg').innerHTML = html ? '<div class="' + (cls || 'err') + '">' + html + '</div>' : ''; }
 function erro(e){
@@ -544,7 +559,7 @@ function kpi(lbl, v, lim, comPrud, extra){
 }
 function kpiS(lbl, val, extra){ return '<div class="card kpi"><div class="lbl">' + esc(lbl) + '</div><div class="val">' + val + '</div><div class="lim">' + (extra || '') + '</div></div>'; }
 function renderPainel(){
-  var u = S.E[S.E.length - 1], cam = camaraDe(u), e = S.ente;
+  var u = S.E[S.sel], cam = camaraDe(u), e = S.ente;
   $('pMeta').innerHTML = '<b>' + esc(nomeUF(e)) + '</b> · ' + nf0.format(e.pop) + ' hab. · ' + esc(u.tipo) + ' do <b>' + esc(u.label) + '</b> · RCL ajustada ' + mi(u.rclAj);
   var h = '', exc = u.dtp - u.rclAj * u.limMax * 0.95 / 100;
   h += kpi('Pessoal · Executivo', u.dtpPct, u.limMax, true, 'Limite ' + pct(u.limMax) + ' · prudencial ' + pct(u.limMax*0.95) + '<br>' + (exc > 0 ? 'Excede o prudencial em ' + mi(exc) : 'Folga até o prudencial: ' + mi(-exc)));
@@ -556,7 +571,7 @@ function renderPainel(){
   var lbl = S.E.map(function(r){ return r.short; }), lim = u.limMax;
   function linha(v, nome, cor){ return {label:nome, data:lbl.map(function(){ return v; }), borderColor:cor, borderDash:[5,4], borderWidth:1.5, pointRadius:0, fill:false}; }
   mkChart('chSerie', {type:'line', data:{labels:lbl, datasets:[
-    {label:'DTP Executivo', data:S.E.map(function(r){ return r.dtpPct; }), borderColor:'#1f5fa8', backgroundColor:'#1f5fa8', borderWidth:2.5, tension:.2},
+    {label:'DTP Executivo', data:S.E.map(function(r){ return r.dtpPct; }), borderColor:'#1f5fa8', backgroundColor:'#1f5fa8', borderWidth:2.5, tension:.2, pointRadius:S.E.map(function(r, i){ return i === S.sel ? 7 : 3; }), pointBackgroundColor:S.E.map(function(r, i){ return i === S.sel ? '#d4621a' : '#1f5fa8'; })},
     linha(lim, 'Máximo', COR.exc), linha(lim*.95, 'Prudencial', COR.prud), linha(lim*.9, 'Alerta', COR.alerta)]},
     options:{maintainAspectRatio:false, plugins:{legend:{position:'bottom'}, tooltip:{callbacks:{label:function(c){ return c.dataset.label + ': ' + pct(c.parsed.y); }}}}, scales:{y:{ticks:{callback:function(v){ return v + '%'; }}}}}});
   $('tSerie').innerHTML = tabelaSerie();
@@ -568,7 +583,7 @@ function tabelaSerie(){
   return '<table><thead><tr><th>Período</th><th>DTP % RCL aj.</th><th>DTP</th><th>RCL ajustada</th><th>Despesa bruta</th><th>Não computadas</th><th>DCL % RCL aj.</th><th>Câmara %</th></tr></thead><tbody>' + rows.join('') + '</tbody></table>';
 }
 function observacoes(){
-  var E = S.E, u = E[E.length - 1], ant = E[E.length - 2], out = [];
+  var E = S.E.slice(0, S.sel + 1), u = E[E.length - 1], ant = E[E.length - 2], out = [];
   var st = statusDe(u.dtpPct, u.limMax, true);
   out.push('No ' + u.label + ', a despesa com pessoal do Executivo está em <b>' + pct(u.dtpPct) + '</b> da RCL ajustada: ' + st.t.toLowerCase() + '. Folga até o máximo: ' + mi(u.rclAj*u.limMax/100 - u.dtp) + '.');
   if (ant) out.push('Variação em relação ao ' + ant.label + ': <b>' + pp(u.dtpPct - ant.dtpPct) + '</b>');
@@ -598,7 +613,7 @@ function mediana(a){ var s = a.filter(function(x){ return x != null && !isNaN(x)
 
 /* ================= Pessoal mensal ================= */
 function renderMensal(){
-  var u = S.E[S.E.length - 1], M = u.mensal;
+  var u = S.E[S.sel], M = u.mensal;
   if (!M.length){ $('mMeta').textContent = 'O ' + u.tipo + ' deste município não traz a abertura mês a mês.'; $('tMes').innerHTML = ''; if (charts.chMes) charts.chMes.destroy(); return; }
   $('mMeta').innerHTML = '<b>' + esc(nomeUF(S.ente)) + '</b> · Executivo · janela de 12 meses do ' + esc(u.label) + ' (' + M[0].mes + ' a ' + M[M.length-1].mes + ')';
   mkChart('chMes', {type:'bar', data:{labels:M.map(function(m){ return m.mes; }), datasets:[
@@ -934,7 +949,7 @@ var METODO = '<p><b>Fonte da metodologia:</b> ECG/TCE-RJ, <i>Análise das Demons
 
 /* ================= Exportação ================= */
 function tabela(qual){
-  var u = S.E[S.E.length - 1];
+  var u = S.E[S.sel];
   if (qual === 'serie') return [['Período','DTP % RCL aj.','DTP','RCL ajustada','RCL','Despesa bruta','Pessoal ativo','Inativos e pensionistas','Despesas não computadas','Inativos c/ rec. vinculados','DCL','DCL % RCL aj.','Câmara DTP','Câmara %']].concat(
     S.E.map(function(r){ var c = camaraDe(r); return [r.label, r.dtpPct, r.dtp, r.rclAj, r.rcl, r.bruta, r.ativo, r.inativo, r.naoComp, r.inatVinc, r.dcl, r.dclPct, c ? c.dtp : null, c ? c.dtpPct : null]; }));
   if (qual === 'mensal') return [['Mês','Despesa bruta','Pessoal ativo','Inativos e pensionistas','Despesas não computadas','Despesa líquida']].concat(
@@ -982,7 +997,7 @@ function assinatura(){
 function imprimir(h){ $('print').innerHTML = h; setTimeout(function(){ window.print(); }, 60); }
 function relEnte(){
   if (!S.ente || !S.E.length) return xmsg('Carregue um município primeiro.');
-  var u = S.E[S.E.length - 1], cam = camaraDe(u), r = S.rreo, hoje = new Date().toLocaleDateString('pt-BR');
+  var u = S.E[S.sel], cam = camaraDe(u), r = S.rreo, hoje = new Date().toLocaleDateString('pt-BR');
   var h = '<h1>Relatório fiscal · ' + esc(nomeUF(S.ente)) + '</h1><p>População: ' + nf0.format(S.ente.pop) + ' hab. · Fonte: Siconfi/STN, API de dados abertos, consulta em ' + hoje + '.</p>';
   h += '<h2>1. Gestão fiscal (RGF do ' + esc(u.label) + ')</h2><table><tr><th>Indicador</th><th>Valor</th><th>% RCL ajustada</th><th>Limite</th><th>Situação</th></tr>';
   function lin(n, v, p, l, cp){ return '<tr><td>' + n + '</td><td>' + brl(v) + '</td><td>' + pct(p) + '</td><td>' + pct(l) + '</td><td>' + statusDe(p, l, cp).t + '</td></tr>'; }
@@ -1036,6 +1051,8 @@ $('bLimpar').addEventListener('click', function(){ COMP = []; renderChips(); });
 $('bComparar').addEventListener('click', comparar);
 $('selInd').addEventListener('change', graficoComp);
 $('mAno').addEventListener('change', mesesMsc);
+['pSel','mSel'].forEach(function(id){ $(id).addEventListener('change', function(){ S.sel = +this.value; $('pSel').value = $('mSel').value = this.value; renderPainel(); renderMensal(); }); });
+$('rSel').addEventListener('change', function(){ carregarRREO(+this.value); });
 $('bMsc').addEventListener('click', consultarMsc);
 $('mPoder').addEventListener('change', function(){ if (S.msc){ renderMsc(); renderFontes(); } });
 $('tMsc').addEventListener('click', function(ev){ var tr = ev.target.closest('tr[data-k]'); if (tr) abreConta(tr.getAttribute('data-k')); });
@@ -1058,7 +1075,7 @@ function iniciar(){
   loadEntes().then(function(){
     COMP = compIds(); renderChips();
     $('selInd').innerHTML = TCE.map(function(t, i){ return '<option value="' + i + '">' + esc(t.n) + '</option>'; }).join('');
-    var Y = new Date().getFullYear(); $('cmpAno').innerHTML = [Y-1, Y-2, Y-3].map(function(a){ return '<option>' + a + '</option>'; }).join('');
+    var Y = new Date().getFullYear(); $('cmpAno').innerHTML = [Y-1, Y-2, Y-3, Y-4].map(function(a){ return '<option>' + a + '</option>'; }).join('');
     $('metodo').innerHTML = METODO;
     var id = +LS.get('siconfi_ente', DEFAULT_ENTE), e = BYID[id] || BYID[DEFAULT_ENTE];
     return carregar(e);
