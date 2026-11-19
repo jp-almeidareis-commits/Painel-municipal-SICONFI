@@ -464,7 +464,7 @@ function parseDCA(items, ano){
   d.recCorrLiq = d.recCorr != null ? d.recCorr - (d.dedFundeb || 0) - (d.dedOutras || 0) : null;
   d.opCred = dv(items, IC, 'RO2.1.0.0.00.0.0', B) || 0;
   var rppIns = dv2(items, 'I-D', 'TotalDespesas', /Total Geral/i, /^Inscri..o de Restos a Pagar Processados/i);
-  var rppAnt = dv2(items, 'I-F', 'TotalDespesas', /Total/i, /^Restos a Pagar Processados Inscritos/i);
+  var rppAnt = null; items.forEach(function(x){ if (x.cod_conta === 'TotalDespesas' && x.anexo.indexOf('I-F') >= 0 && /^Restos a Pagar Processados Inscritos/i.test(x.coluna)) rppAnt = (rppAnt || 0) + (+x.valor); });
   var rppPag = dv2(items, 'I-F', 'TotalDespesas', /Total/i, /^Restos a Pagar Processados Pagos/i);
   var rppCanc = dv2(items, 'I-F', 'TotalDespesas', /Total/i, /^Restos a Pagar Processados Cancelados/i);
   d.rpp = rppIns == null && rppAnt == null ? null : (rppIns || 0) + (rppAnt || 0) - (rppPag || 0) - (rppCanc || 0);
@@ -824,7 +824,7 @@ function renderChips(){
   LS.set('siconfi_comp', JSON.stringify(COMP));
 }
 function daAno(id, ano){
-  return api('msc_orcamentaria',{id_ente:id, an_referencia:ano, me_referencia:12, co_tipo_matriz:'MSCE', classe_conta:6, id_tv:'ending_balance'}).then(function(it){
+  return api('msc_orcamentaria',{id_ente:id, an_referencia:ano, me_referencia:12, co_tipo_matriz:'MSCC', classe_conta:6, id_tv:'ending_balance'}).then(function(it){
     if (!it || !it.length) return null;
     var s = 0;
     it.forEach(function(x){ var n = String(x.natureza_receita || ''); if (String(x.conta_contabil).indexOf('6212') === 0 && /^\d{7}[34]$/.test(n)) s += (x.natureza_conta === 'C' ? 1 : -1) * (+x.valor); });
@@ -836,8 +836,9 @@ function dadosExerc(id, ano){
   return Promise.all([
     dcaAno(id, ano).catch(function(){ return null; }),
     rreo(id, {ano:ano, p:6, tipo:'RREO'}, 'RREO-Anexo 14').then(function(it){ var r = parseRREO(it, {ano:ano, p:6}); return r.rec != null ? r : null; }).catch(function(){ return null; }),
-    daAno(id, ano).catch(function(){ return null; })
-  ]).then(function(rs){ return {id:id, pop:pop, d:rs[0], r:rs[1], da:rs[2]}; });
+    daAno(id, ano).catch(function(){ return null; }),
+    rreo(id, {ano:ano + 1, p:1, tipo:'RREO'}, 'RREO-Anexo 14').then(function(it){ var r = parseRREO(it, {ano:ano + 1, p:1}); return r.rpp && r.rpp.insc > 0 ? r.rpp.insc : null; }).catch(function(){ return null; })
+  ]).then(function(rs){ if (rs[0] && rs[3] != null) rs[0].rpp = rs[3]; if (rs[0] && !(rs[0].rpp > 0)) rs[0].rpp = null; return {id:id, pop:pop, d:rs[0], r:rs[1], da:rs[2]}; });
 }
 function comparar(){
   if (S.ente && COMP.indexOf(S.ente.id) < 0){ COMP.unshift(S.ente.id); renderChips(); }
@@ -928,7 +929,7 @@ function graficoComp(){
 var METODO = '<p><b>Fonte da metodologia:</b> ECG/TCE-RJ, <i>Análise das Demonstrações Contábeis Aplicadas ao Setor Público</i> (2026). Os dados vêm do Siconfi: DCA do exercício, RREO do 6º bimestre e MSC de dezembro.</p>' +
   '<p><b>Padrão:</b> média aritmética do índice entre os municípios do grupo escolhido. <b>Variação:</b> (índice calculado ÷ padrão − 1) × 100, como na HP12C (padrão ENTER calculado Δ%). <b>Perfil:</b> variação de até 10% para mais ou para menos = Satisfatório. De 10,01% a 30% = Bom, se a favor do sentido desejável do índice, ou Razoável, se contra. Acima de 30,01% = Ótimo ou Insatisfatório. Nota de 1 (Insatisfatório) a 5 (Ótimo).</p>' +
   '<p><b>Sentido de cada índice:</b> receitas e despesas por habitante, liquidez, solvência, investimento, receitas próprias, autonomia e execução da receita e da despesa: quanto maior, melhor. Endividamento, composição das exigibilidades, imobilização do PL, comprometimento das categorias econômicas, pessoal, resultado da execução, amortização e encargos da dívida: quanto menor, melhor.</p>' +
-  '<p><b>Adaptações aos dados disponíveis:</b> o PIB per capita não está no Siconfi e foi omitido. Saúde e educação usam a despesa empenhada nas funções 10 e 12, e não a ASPS e a MDE apuradas no SIOPS e no SIOPE. O repasse ao Legislativo usa a despesa da função 01 – Legislativa. A dívida ativa arrecadada vem das naturezas de receita de dívida ativa (tipos 3 e 4) na MSC de dezembro. Depósitos de diversas origens correspondem aos valores restituíveis (2.1.8.8). Restos a pagar processados = inscritos no exercício + saldo de exercícios anteriores. Com PL negativo, a imobilização do PL não é classificada e fica fora do padrão. Um índice também não é classificado quando o padrão é zero ou negativo.</p>' +
+  '<p><b>Adaptações aos dados disponíveis:</b> o PIB per capita não está no Siconfi e foi omitido. Saúde e educação usam a despesa empenhada nas funções 10 e 12, e não a ASPS e a MDE apuradas no SIOPS e no SIOPE. O repasse ao Legislativo usa a despesa da função 01 – Legislativa. A dívida ativa arrecadada vem das naturezas de receita de dívida ativa (tipos 3 e 4) na MSC de dezembro. Depósitos de diversas origens correspondem aos valores restituíveis (2.1.8.8). Restos a pagar processados = saldo inscrito em 31/12, conforme o RREO do 1º bimestre do exercício seguinte (ou, na falta dele, calculado pela DCA). Com PL negativo, a imobilização do PL não é classificada e fica fora do padrão. Um índice também não é classificado quando o padrão é zero ou negativo.</p>' +
   '<p><b>Observação:</b> as tabelas de exemplo do manual têm alguns perfis que não seguem a própria regra, como a execução da despesa. Aqui a regra é aplicada de forma uniforme, e para a execução da despesa vale o texto do manual (percentuais elevados indicam execução integral).</p>';
 
 /* ================= Exportação ================= */
