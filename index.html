@@ -505,11 +505,11 @@ function carregar(ente){
   $('mscMeta').textContent = '';
   msg('');
   var Y = new Date().getFullYear();
-  var pDca = pool([Y-1, Y-2, Y-3, Y-4].map(function(a){ return function(){ return dcaAno(ente.id, a); }; }), 3).then(function(rs){
+  var pDca = pool([Y-1, Y-2].map(function(a){ return function(){ return dcaAno(ente.id, a); }; }), 3).then(function(rs){
     S.dca = rs.filter(function(d){ return d && !d.erro; }).sort(function(a,b){ return a.ano - b.ano; });
     renderDCA();
   }).catch(function(e){ $('dMeta').textContent = 'Falha ao ler a DCA: ' + (e.message || e); });
-  return entregas(ente.id, anosRecentes(4)).then(function(ents){
+  return entregas(ente.id, anosRecentes(3)).then(function(ents){
     S.ents = ents;
     preencheMsc();
     var R = filtra(ents, 'RREO', 'E');
@@ -517,7 +517,7 @@ function carregar(ente){
     $('rSel').innerHTML = R.map(function(e, i){ return '<option value="' + i + '">' + e.p + 'º bimestre de ' + e.ano + '</option>'; }).reverse().join('');
     var pR = R.length ? carregarRREO(R.length - 1) : ($('rMeta').textContent = 'Nenhum RREO encontrado.', null);
     var E = filtra(ents, 'RGF', 'E').slice(-10), L = filtra(ents, 'RGF', 'L').slice(-10);
-    if (!E.length) throw new Error('Não encontrei RGF da Prefeitura de ' + nomeUF(ente) + ' nos últimos quatro anos.');
+    if (!E.length) throw new Error('Não encontrei RGF da Prefeitura de ' + nomeUF(ente) + ' desde ' + (new Date().getFullYear() - 2) + '.');
     $('pMeta').innerHTML = 'Lendo ' + (E.length + L.length) + ' relatórios de gestão fiscal de <b>' + esc(nomeUF(ente)) + '</b>…';
     var fns = E.concat(L).map(function(e){ return function(){ return rgf(ente.id, e).then(function(it){ return parseRGF(it, e); }); }; });
     return pool(fns, 4).then(function(rs){
@@ -1075,7 +1075,7 @@ function iniciar(){
   loadEntes().then(function(){
     COMP = compIds(); renderChips();
     $('selInd').innerHTML = TCE.map(function(t, i){ return '<option value="' + i + '">' + esc(t.n) + '</option>'; }).join('');
-    var Y = new Date().getFullYear(); $('cmpAno').innerHTML = [Y-1, Y-2, Y-3, Y-4].map(function(a){ return '<option>' + a + '</option>'; }).join('');
+    var Y = new Date().getFullYear(); $('cmpAno').innerHTML = [Y-1, Y-2].map(function(a){ return '<option>' + a + '</option>'; }).join('');
     $('metodo').innerHTML = METODO;
     var id = +LS.get('siconfi_ente', DEFAULT_ENTE), e = BYID[id] || BYID[DEFAULT_ENTE];
     return carregar(e);
