@@ -51,6 +51,7 @@ tr.sec td{background:#f3f5f9;font-weight:650;color:#33405a}
 tr.pico td{background:#fff7e6}
 tr.me td{background:#eaf2fb;font-weight:600}
 tr.click{cursor:pointer}tr.click:hover td{background:#f4f8fd}
+.pf{display:inline-block;min-width:20px;text-align:center;padding:1px 7px;border-radius:9px;color:#fff;font-size:11px;font-weight:650}
 .pos{color:var(--ok)}.neg{color:var(--exc)}
 .tbl{overflow:auto;max-height:560px}
 .obs{padding-left:18px;margin:0}
@@ -82,7 +83,7 @@ code{background:#eef0f4;padding:1px 5px;border-radius:4px;font-size:12px}
   <div><h1>Painel Fiscal Municipal</h1><div class="sub">Dados abertos do Siconfi · Tesouro Nacional</div></div>
   <form class="search" id="fBusca"><input type="search" id="qEnte" list="dlEntes" placeholder="Município, ex.: Campos dos Goytacazes - RJ" autocomplete="off"><datalist id="dlEntes"></datalist><button>Carregar</button></form>
 </header>
-<nav id="tabs"><a data-v="painel" class="on">Gestão fiscal (RGF)</a><a data-v="mensal">Pessoal mês a mês</a><a data-v="rreo">Execução orçamentária (RREO)</a><a data-v="dca">Balanço anual (DCA)</a><a data-v="msc">Contabilidade (MSC)</a><a data-v="comparar">Comparar municípios</a><a data-v="relatorios">Relatórios e exportação</a><a data-v="config">Configurações</a></nav>
+<nav id="tabs"><a data-v="painel" class="on">Gestão fiscal (RGF)</a><a data-v="mensal">Pessoal mês a mês</a><a data-v="rreo">Execução orçamentária (RREO)</a><a data-v="dca">Balanço anual (DCA)</a><a data-v="msc">Contabilidade (MSC)</a><a data-v="comparar">Comparar (TCE-RJ)</a><a data-v="relatorios">Relatórios e exportação</a><a data-v="config">Configurações</a></nav>
 <main>
 <div id="msg"></div>
 
@@ -142,15 +143,17 @@ code{background:#eef0f4;padding:1px 5px;border-radius:4px;font-size:12px}
 
 <section class="view" id="v-comparar">
   <div class="card">
-    <div class="row"><div style="flex:1;min-width:240px"><input type="search" id="qComp" list="dlEntes" placeholder="Adicionar município…" autocomplete="off"></div><button class="sec" id="bAdd">Adicionar</button><button class="sec" id="bPreset">Norte Fluminense e similares</button><button class="sec" id="bLimpar">Limpar</button><button id="bComparar">Comparar</button></div>
+    <div class="row"><div style="flex:1;min-width:240px"><input type="search" id="qComp" list="dlEntes" placeholder="Adicionar município ao grupo…" autocomplete="off"></div><button class="sec" id="bAdd">Adicionar</button><button class="sec" id="bPreset">Norte Fluminense e similares</button><button class="sec" id="bLimpar">Limpar</button><label>Exercício <select id="cmpAno"></select></label><button id="bComparar">Analisar</button></div>
     <div class="chips" id="chips"></div>
-    <p class="note">Usa o RGF e o RREO mais recentes e o último balanço anual (DCA) de cada município. O município carregado no painel entra sempre na comparação.</p>
+    <p class="note">Análise das demonstrações contábeis pela metodologia da ECG/TCE-RJ: cada índice é comparado com a média do grupo (padrão) e classificado de Insatisfatório a Ótimo. O município carregado no painel é o de referência e entra sempre no grupo.</p>
   </div>
-  <div class="two" style="margin-top:12px">
+  <div class="grid" id="cmpResumo" style="margin-top:12px"></div>
+  <div class="two">
+    <div class="card"><h2 id="fichaTit">Ficha do município</h2><div class="tbl" id="tFicha" style="max-height:900px"><p class="note">Monte o grupo, escolha o exercício e clique em Analisar.</p></div></div>
     <div class="card"><div class="row" style="margin-bottom:8px"><select id="selInd" style="max-width:100%"></select></div><div class="chart" id="cmpChartBox"><canvas id="chComp"></canvas></div><p class="note" id="cmpNota"></p></div>
-    <div class="card"><h2>Posição do município no grupo</h2><ul class="obs" id="cmpTexto"><li class="note">Clique em Comparar.</li></ul></div>
   </div>
-  <div class="card" style="margin-top:12px"><h2>Todos os indicadores</h2><div class="tbl" id="tComp"></div></div>
+  <div class="card" style="margin-top:12px"><h2>Matriz do grupo</h2><div class="tbl" id="tComp"></div></div>
+  <div class="card" style="margin-top:12px"><h2>Metodologia</h2><div class="note" id="metodo"></div></div>
 </section>
 
 <section class="view" id="v-relatorios">
@@ -410,6 +413,11 @@ function dv(items, anexo, cod, col){
     if (x.cod_conta === cod && x.anexo.indexOf(anexo) >= 0 && col.test(x.coluna)) return +x.valor; }
   return null;
 }
+function dv2(items, anexo, cod, contaRe, col){
+  for (var i = 0; i < items.length; i++){ var x = items[i];
+    if (x.cod_conta === cod && x.anexo.indexOf(anexo) >= 0 && contaRe.test(x.conta) && col.test(x.coluna)) return +x.valor; }
+  return null;
+}
 function soma(){ var s = null; for (var i = 0; i < arguments.length; i++) if (arguments[i] != null) s = (s || 0) + arguments[i]; return s; }
 function parseDCA(items, ano){
   if (!items || !items.length) return null;
@@ -446,6 +454,20 @@ function parseDCA(items, ano){
   d.pc = dv(items, IAB, 'P2.1.0.0.0.00.00', ANY);
   d.pnc = dv(items, IAB, 'P2.2.0.0.0.00.00', ANY);
   d.pl = dv(items, IAB, 'P2.3.0.0.0.00.00', ANY);
+  d.estoques = dv(items, IAB, 'P1.1.5.0.0.00.00', ANY) || 0;
+  d.rlp = dv(items, IAB, 'P1.2.1.0.0.00.00', ANY) || 0;
+  d.inv = dv(items, IAB, 'P1.2.2.0.0.00.00', ANY) || 0;
+  d.imob = dv(items, IAB, 'P1.2.3.0.0.00.00', ANY) || 0;
+  d.intang = dv(items, IAB, 'P1.2.4.0.0.00.00', ANY) || 0;
+  d.ddo = dv(items, IAB, 'P2.1.8.8.0.00.00', ANY);
+  d.recLiq = d.recTotal != null ? d.recTotal - (d.dedFundeb || 0) - (d.dedOutras || 0) : null;
+  d.recCorrLiq = d.recCorr != null ? d.recCorr - (d.dedFundeb || 0) - (d.dedOutras || 0) : null;
+  d.opCred = dv(items, IC, 'RO2.1.0.0.00.0.0', B) || 0;
+  var rppIns = dv2(items, 'I-D', 'TotalDespesas', /Total Geral/i, /^Inscri..o de Restos a Pagar Processados/i);
+  var rppAnt = dv2(items, 'I-F', 'TotalDespesas', /Total/i, /^Restos a Pagar Processados Inscritos/i);
+  var rppPag = dv2(items, 'I-F', 'TotalDespesas', /Total/i, /^Restos a Pagar Processados Pagos/i);
+  var rppCanc = dv2(items, 'I-F', 'TotalDespesas', /Total/i, /^Restos a Pagar Processados Cancelados/i);
+  d.rpp = rppIns == null && rppAnt == null ? null : (rppIns || 0) + (rppAnt || 0) - (rppPag || 0) - (rppCanc || 0);
   d.liqCorr = div(d.ac, d.pc);
   d.liqImed = div(d.caixa, d.pc);
   d.endiv = d.ativo ? (soma(d.pc, d.pnc) / d.ativo * 100) : null;
@@ -460,6 +482,7 @@ function parseDCA(items, ano){
   d.funcoes = fun.sort(function(a,b){ return b.v - a.v; });
   d.saude = (fun.find(function(f){ return f.cod === '10'; }) || {}).v;
   d.educ = (fun.find(function(f){ return f.cod === '12'; }) || {}).v;
+  d.legis = (fun.find(function(f){ return f.cod === '01'; }) || {}).v;
   // dicionário de contas (para a MSC)
   d.dict = {};
   items.forEach(function(x){ if (/^P\d(\.\d){4}\.\d\d\.\d\d$/.test(x.cod_conta)){ var nm = String(x.conta).replace(/^[\d.]+\s*-\s*/, ''); d.dict[x.cod_conta.slice(1)] = nm; } });
@@ -749,22 +772,50 @@ function renderFontes(){
     '<tr class="tot"><td>Total</td><td>' + mi(tot) + '</td><td></td><td></td></tr></tbody></table><p class="note">Primeiro dígito: 1 = recursos do exercício, 2 = de exercícios anteriores. Os três últimos identificam a fonte (padrão STN).</p>';
 }
 
-/* ================= Comparação ================= */
-var IND = [
-  {k:'pessoal', g:'RGF', n:'Pessoal do Executivo (% da RCL ajustada)', f:pct, dir:-1, get:function(x){ return x.rgf && x.rgf.dtpPct; }},
-  {k:'dcl', g:'RGF', n:'Dívida consolidada líquida (% da RCL ajustada)', f:pct, dir:-1, get:function(x){ return x.rgf && x.rgf.dclPct; }},
-  {k:'realRec', g:'RREO', n:'Receita realizada / previsão atualizada', f:pct1, dir:0, get:function(x){ return x.rreo && div(x.rreo.rec, x.rreo.prev)*100; }},
-  {k:'execDesp', g:'RREO', n:'Despesa empenhada / dotação atualizada', f:pct1, dir:0, get:function(x){ return x.rreo && div(x.rreo.emp, x.rreo.dot)*100; }},
-  {k:'primPc', g:'RREO', n:'Resultado primário no ano (R$ por habitante)', f:rs0, dir:1, get:function(x){ return x.rreo && x.pop ? div(x.rreo.prim, x.pop) : null; }},
-  {k:'rcPc', g:'DCA', n:'Receita corrente per capita (R$)', f:rs0, dir:1, get:function(x){ return x.dca && x.dca.xRcPc; }},
-  {k:'trib', g:'DCA', n:'Receita tributária própria (% da receita corrente)', f:pct1, dir:1, get:function(x){ return x.dca && x.dca.xTribPct; }},
-  {k:'roy', g:'DCA', n:'Royalties e compensações (% da receita corrente)', f:pct1, dir:0, get:function(x){ return x.dca && x.dca.xRoyPct; }},
-  {k:'pesDesp', g:'DCA', n:'Pessoal (% da despesa total)', f:pct1, dir:-1, get:function(x){ return x.dca && x.dca.xPesDesp; }},
-  {k:'inv', g:'DCA', n:'Investimentos (% da despesa total)', f:pct1, dir:1, get:function(x){ return x.dca && x.dca.xInvDesp; }},
-  {k:'saude', g:'DCA', n:'Despesa com saúde per capita (R$)', f:rs0, dir:0, get:function(x){ return x.dca && x.dca.xSaudePc; }},
-  {k:'educ', g:'DCA', n:'Despesa com educação per capita (R$)', f:rs0, dir:0, get:function(x){ return x.dca && x.dca.xEducPc; }},
-  {k:'liq', g:'DCA', n:'Liquidez corrente (AC/PC)', f:num2, dir:1, get:function(x){ return x.dca && x.dca.liqCorr; }},
-  {k:'endiv', g:'DCA', n:'Endividamento geral (passivo/ativo)', f:pct1, dir:-1, get:function(x){ return x.dca && x.dca.endiv; }}
+/* ================= Comparação · metodologia ECG/TCE-RJ ================= */
+/* Manual "Análise das Demonstrações Contábeis Aplicadas ao Setor Público" (ECG/TCE-RJ):
+   padrão = média do índice na amostra; variação = (calculado ÷ padrão − 1) × 100;
+   perfil: até ±10% Satisfatório; de 10,01% a 30% Bom (a favor) ou Razoável (contra);
+   acima de 30,01% Ótimo (a favor) ou Insatisfatório (contra). */
+var PERFIS = {I:{n:'Insatisfatório', c:'#c4302b'}, R:{n:'Razoável', c:'#d4621a'}, S:{n:'Satisfatório', c:'#6b7a90'}, B:{n:'Bom', c:'#3f9a5f'}, O:{n:'Ótimo', c:'#1e6b45'}};
+var NOTA = {I:1, R:2, S:3, B:4, O:5};
+var GRUPOS = ['Receita por habitante', 'Despesa por habitante', 'Liquidez e capacidade de pagamento', 'Estrutura de capitais', 'Execução orçamentária'];
+function porHab(v, x){ return (v == null || !x.pop) ? null : v / x.pop; }
+function p100(a, b){ var r = div(a, b); return r == null ? null : r * 100; }
+function D(x){ return x.d || {}; }
+function R(x){ return x.r || {}; }
+var TCE = [
+  {k:'recPc', g:0, n:'Receita total per capita (R$)', fx:'Receita arrecadada ÷ habitantes', f:num2, dir:1, get:function(x){ return porHab(R(x).rec != null ? R(x).rec : D(x).recLiq, x); }},
+  {k:'iptuPc', g:0, n:'IPTU per capita (R$)', fx:'IPTU arrecadado ÷ habitantes', f:num2, dir:1, get:function(x){ return porHab(D(x).iptu, x); }},
+  {k:'issPc', g:0, n:'ISS per capita (R$)', fx:'ISS arrecadado ÷ habitantes', f:num2, dir:1, get:function(x){ return porHab(D(x).iss, x); }},
+  {k:'daPc', g:0, n:'Dívida ativa per capita (R$)', fx:'Dívida ativa arrecadada ÷ habitantes', f:num2, dir:1, get:function(x){ return porHab(x.da, x); }},
+  {k:'despPc', g:1, n:'Despesa orçamentária per capita (R$)', fx:'Despesa executada (empenhada) ÷ habitantes', f:num2, dir:1, get:function(x){ return porHab(R(x).emp != null ? R(x).emp : D(x).despTotal, x); }},
+  {k:'invPc', g:1, n:'Investimentos per capita (R$)', fx:'Despesa de capital com investimentos ÷ população', f:num2, dir:1, get:function(x){ return porHab(D(x).invest, x); }},
+  {k:'saudePc', g:1, n:'Gastos com saúde per capita (R$)', fx:'Despesa na função 10 – Saúde ÷ população', f:num2, dir:1, get:function(x){ return porHab(D(x).saude, x); }},
+  {k:'educPc', g:1, n:'Gastos com educação per capita (R$)', fx:'Despesa na função 12 – Educação ÷ população', f:num2, dir:1, get:function(x){ return porHab(D(x).educ, x); }},
+  {k:'legPc', g:1, n:'Transferências ao Legislativo per capita (R$)', fx:'Despesa na função 01 – Legislativa ÷ população', f:num2, dir:1, get:function(x){ return porHab(D(x).legis, x); }},
+  {k:'liqImed', g:2, n:'Liquidez imediata', fx:'Ativo circulante disponível ÷ passivo circulante', f:num2, dir:1, get:function(x){ return div(D(x).caixa, D(x).pc); }},
+  {k:'liqRpp', g:2, n:'Liquidez com restos a pagar', fx:'Ativo circulante disponível ÷ restos a pagar processados', f:num2, dir:1, get:function(x){ return div(D(x).caixa, D(x).rpp); }},
+  {k:'liqDdo', g:2, n:'Liquidez com recursos de terceiros', fx:'Ativo circulante disponível ÷ depósitos de diversas origens (valores restituíveis)', f:num2, dir:1, get:function(x){ return div(D(x).caixa, D(x).ddo); }},
+  {k:'liqCorr', g:2, n:'Liquidez corrente', fx:'Ativo circulante ÷ passivo circulante', f:num2, dir:1, get:function(x){ return div(D(x).ac, D(x).pc); }},
+  {k:'liqSeca', g:2, n:'Liquidez seca', fx:'(Ativo circulante − estoques) ÷ passivo circulante', f:num2, dir:1, get:function(x){ var d = D(x); return d.ac == null ? null : div(d.ac - (d.estoques || 0), d.pc); }},
+  {k:'liqGeral', g:2, n:'Liquidez geral', fx:'(Ativo circulante + realizável a longo prazo) ÷ passivo exigível', f:num2, dir:1, get:function(x){ var d = D(x); return d.ac == null ? null : div(d.ac + (d.rlp || 0), soma(d.pc, d.pnc)); }},
+  {k:'solv', g:2, n:'Solvência geral', fx:'Ativo total ÷ passivo exigível (circulante + não circulante)', f:num2, dir:1, get:function(x){ return div(D(x).ativo, soma(D(x).pc, D(x).pnc)); }},
+  {k:'endiv', g:3, n:'Endividamento geral (%)', fx:'Passivo exigível ÷ ativo total × 100', f:pct, dir:-1, get:function(x){ return p100(soma(D(x).pc, D(x).pnc), D(x).ativo); }},
+  {k:'compExig', g:3, n:'Composição das exigibilidades (%)', fx:'Passivo circulante ÷ passivo exigível × 100', f:pct, dir:-1, get:function(x){ return p100(D(x).pc, soma(D(x).pc, D(x).pnc)); }},
+  {k:'imobPL', g:3, n:'Imobilização do patrimônio líquido (%)', fx:'(Investimentos + imobilizado + intangível) ÷ patrimônio líquido × 100', f:pct, dir:-1, plNeg:true, get:function(x){ var d = D(x); return d.pl == null ? null : p100((d.inv || 0) + (d.imob || 0) + (d.intang || 0), d.pl); }},
+  {k:'compCorr', g:4, n:'Comprometimento da categoria econômica corrente (%)', fx:'Despesas correntes empenhadas ÷ receitas correntes arrecadadas × 100', f:pct, dir:-1, get:function(x){ return p100(D(x).despCorr, D(x).recCorrLiq); }},
+  {k:'compCap', g:4, n:'Comprometimento da categoria econômica de capital (%)', fx:'Despesas de capital empenhadas ÷ receitas de capital arrecadadas × 100', f:pct, dir:-1, get:function(x){ return p100(D(x).despCap, D(x).recCap); }},
+  {k:'pesDesp', g:4, n:'Gasto com pessoal sobre a despesa orçamentária (%)', fx:'Despesas com pessoal e encargos ÷ despesas empenhadas × 100', f:pct, dir:-1, get:function(x){ return p100(D(x).pessoal, D(x).despTotal); }},
+  {k:'invDesp', g:4, n:'Investimento sobre a despesa orçamentária (%)', fx:'Despesas empenhadas com investimentos ÷ despesas empenhadas × 100', f:pct, dir:1, get:function(x){ return p100(D(x).invest, D(x).despTotal); }},
+  {k:'pesRcl', g:4, n:'Gasto com pessoal sobre a receita corrente líquida (%)', fx:'Despesas empenhadas com pessoal e encargos ÷ receita corrente líquida × 100', f:pct, dir:-1, get:function(x){ return p100(D(x).pessoal, R(x).rcl); }},
+  {k:'proprias', g:4, n:'Receitas correntes próprias (%)', fx:'(Receitas correntes − transferências recebidas) ÷ receitas correntes × 100', f:pct, dir:1, get:function(x){ var d = D(x); return d.recCorr == null ? null : p100(d.recCorr - (d.transf || 0), d.recCorr); }},
+  {k:'execRec', g:4, n:'Execução orçamentária da receita (%)', fx:'Receita arrecadada ÷ receita atualizada × 100', f:pct, dir:1, get:function(x){ return p100(R(x).rec, R(x).prev); }},
+  {k:'execDesp', g:4, n:'Execução orçamentária da despesa (%)', fx:'Despesa empenhada ÷ dotação atualizada × 100', f:pct, dir:1, get:function(x){ return p100(R(x).emp, R(x).dot); }},
+  {k:'resExec', g:4, n:'Resultado da execução orçamentária (%)', fx:'Despesa empenhada ÷ receita arrecadada × 100 (acima de 100% = déficit)', f:pct, dir:-1, get:function(x){ return p100(R(x).emp, R(x).rec); }},
+  {k:'autonomia', g:4, n:'Autonomia orçamentária (%)', fx:'(Receitas correntes − transferências recebidas) ÷ despesas totais × 100', f:pct, dir:1, get:function(x){ var d = D(x); return d.recCorr == null ? null : p100(d.recCorr - (d.transf || 0), d.despTotal); }},
+  {k:'amort', g:4, n:'Amortização e refinanciamento da dívida (%)', fx:'Operações de crédito arrecadadas ÷ despesas totais empenhadas × 100', f:pct, dir:-1, get:function(x){ return p100(D(x).opCred, D(x).despTotal); }},
+  {k:'encargos', g:4, n:'Encargos da dívida na despesa corrente (%)', fx:'Juros e encargos da dívida ÷ despesas correntes empenhadas × 100', f:pct, dir:-1, get:function(x){ return p100(D(x).juros, D(x).despCorr); }}
 ];
 function compIds(){ try { var v = JSON.parse(LS.get('siconfi_comp','null')); if (v && v.length) return v; } catch(e){} return PRESET.slice(); }
 var COMP = [];
@@ -772,63 +823,113 @@ function renderChips(){
   $('chips').innerHTML = COMP.map(function(id){ var e = BYID[id]; return '<span>' + esc(e ? nomeUF(e) : id) + '<b data-rm="' + id + '" title="Remover">×</b></span>'; }).join('');
   LS.set('siconfi_comp', JSON.stringify(COMP));
 }
-function dadosEnte(id){
-  var Y = new Date().getFullYear(), pop = BYID[id] ? BYID[id].pop : null;
-  return entregas(id, [Y-1, Y]).then(function(ents){
-    var E = filtra(ents, 'RGF', 'E'), R = filtra(ents, 'RREO', 'E');
-    function tentaRGF(i){ if (i < 0) return Promise.resolve(null); return rgf(id, E[i]).then(function(it){ var r = parseRGF(it, E[i]); return r.dtpPct != null ? r : tentaRGF(i - 1); }); }
-    function tentaRREO(i){ if (i < 0) return Promise.resolve(null); return rreo(id, R[i], 'RREO-Anexo 14').then(function(it){ var r = parseRREO(it, R[i]); return r.rec != null ? r : tentaRREO(i - 1); }); }
-    function tentaDCA(a, n){ return dcaAno(id, a).then(function(d){ return d || (n ? tentaDCA(a - 1, n - 1) : null); }); }
-    return Promise.all([tentaRGF(E.length - 1).catch(function(){ return null; }), tentaRREO(R.length - 1).catch(function(){ return null; }), tentaDCA(Y - 1, 1).catch(function(){ return null; })]);
-  }).then(function(rs){ return {id:id, pop:pop, rgf:rs[0], rreo:rs[1], dca:dcaInd(rs[2], pop)}; });
+function daAno(id, ano){
+  return api('msc_orcamentaria',{id_ente:id, an_referencia:ano, me_referencia:12, co_tipo_matriz:'MSCE', classe_conta:6, id_tv:'ending_balance'}).then(function(it){
+    if (!it || !it.length) return null;
+    var s = 0;
+    it.forEach(function(x){ var n = String(x.natureza_receita || ''); if (String(x.conta_contabil).indexOf('6212') === 0 && /^\d{7}[34]$/.test(n)) s += (x.natureza_conta === 'C' ? 1 : -1) * (+x.valor); });
+    return s;
+  });
+}
+function dadosExerc(id, ano){
+  var pop = BYID[id] ? BYID[id].pop : null;
+  return Promise.all([
+    dcaAno(id, ano).catch(function(){ return null; }),
+    rreo(id, {ano:ano, p:6, tipo:'RREO'}, 'RREO-Anexo 14').then(function(it){ var r = parseRREO(it, {ano:ano, p:6}); return r.rec != null ? r : null; }).catch(function(){ return null; }),
+    daAno(id, ano).catch(function(){ return null; })
+  ]).then(function(rs){ return {id:id, pop:pop, d:rs[0], r:rs[1], da:rs[2]}; });
 }
 function comparar(){
   if (S.ente && COMP.indexOf(S.ente.id) < 0){ COMP.unshift(S.ente.id); renderChips(); }
-  if (!COMP.length) return;
+  if (COMP.length < 2){ $('tFicha').innerHTML = '<p class="note">Escolha pelo menos dois municípios: o padrão é a média do grupo.</p>'; return; }
+  var ano = +$('cmpAno').value;
   $('bComparar').disabled = true;
-  $('tComp').innerHTML = '<p class="note">Buscando ' + COMP.length + ' municípios (RGF, RREO e DCA)…</p>';
-  pool(COMP.map(function(id){ return function(){ return dadosEnte(id); }; }), 3).then(function(res){
+  $('tFicha').innerHTML = '<p class="note">Lendo a DCA de ' + ano + ', o RREO do 6º bimestre e a MSC de dezembro de ' + COMP.length + ' municípios…</p>';
+  pool(COMP.map(function(id){ return function(){ return dadosExerc(id, ano); }; }), 3).then(function(res){
     S.comp = res.map(function(x, i){ return x && !x.erro ? x : {id:COMP[i]}; });
-    renderComp();
+    S.compAno = ano;
+    calcPadroes(); renderComp();
   }).catch(erro).then(function(){ $('bComparar').disabled = false; });
 }
-function ranking(ind){
-  var L = S.comp.map(function(x){ return {id:x.id, v:ind.get(x)}; }).filter(function(x){ return x.v != null && !isNaN(x.v); });
-  L.sort(function(a,b){ return b.v - a.v; });
-  return L;
+function valido(t, v){ return v != null && isFinite(v) && !(t.plNeg && v < 0); }
+function calcPadroes(){
+  S.padrao = {};
+  TCE.forEach(function(t){
+    var v = S.comp.map(t.get).filter(function(x){ return valido(t, x); });
+    S.padrao[t.k] = v.length >= 2 ? v.reduce(function(a, b){ return a + b; }, 0) / v.length : null;
+  });
 }
-function textoPosicao(ind){
-  var L = ranking(ind), me = S.ente ? S.ente.id : null, i = L.findIndex(function(x){ return x.id === me; });
-  if (i < 0 || L.length < 2) return null;
-  var med = mediana(L.map(function(x){ return x.v; })), v = L[i].v;
-  var lado = v > med ? 'acima da mediana' : (v < med ? 'abaixo da mediana' : 'igual à mediana');
-  var qual = ind.dir === 0 ? '' : ((ind.dir > 0) === (v > med) ? ' (favorável)' : (v === med ? '' : ' (desfavorável)'));
-  return '<b>' + esc(ind.n) + '</b>: ' + ind.f(v) + ' · ' + (i + 1) + 'º de ' + L.length + ' (do maior para o menor) · ' + lado + ' do grupo (' + ind.f(med) + ')' + qual + '.';
+function perfil(t, v){
+  var p = S.padrao[t.k];
+  if (v == null || !isFinite(v)) return null;
+  if (t.plNeg && v < 0) return {k:null, obs:'PL negativo'};
+  if (p == null) return {k:null, obs:'sem padrão'};
+  if (p <= 0) return {k:null, obs:'padrão ≤ 0'};
+  var va = (v / p - 1) * 100, e = va * t.dir;
+  var k = Math.abs(va) <= 10 ? 'S' : (e > 30 ? 'O' : (e > 10 ? 'B' : (e < -30 ? 'I' : 'R')));
+  return {k:k, v:va};
+}
+function chipP(pf, longo){
+  if (!pf) return '—';
+  if (!pf.k) return '<span class="note" title="Não classificado">n.c. (' + esc(pf.obs) + ')</span>';
+  var P = PERFIS[pf.k];
+  return '<span class="pf" style="background:' + P.c + '" title="' + P.n + '">' + (longo ? P.n : pf.k) + '</span>';
+}
+function varTxtP(pf){ return pf && pf.v != null ? (pf.v > 0 ? '+' : '') + nf2.format(pf.v) + '%' : '—'; }
+function refX(){ var me = S.ente ? S.ente.id : null; return S.comp.find(function(x){ return x.id === me; }) || S.comp[0]; }
+function fichaHTML(x){
+  var h = '<table><thead><tr><th>Indicador</th><th>Calculado</th><th>Padrão (média)</th><th>Variação</th><th>Perfil</th></tr></thead><tbody>';
+  GRUPOS.forEach(function(g, gi){
+    h += '<tr class="sec"><td colspan="5">' + (gi + 1) + '. ' + g + '</td></tr>';
+    TCE.filter(function(t){ return t.g === gi; }).forEach(function(t){
+      var v = t.get(x), pf = perfil(t, v);
+      h += '<tr><td class="txt" title="' + esc(t.fx) + '">' + esc(t.n) + '<div class="note">' + esc(t.fx) + '</div></td><td>' + t.f(v) + '</td><td>' + t.f(S.padrao[t.k]) + '</td><td>' + varTxtP(pf) + '</td><td>' + chipP(pf, true) + '</td></tr>';
+    });
+  });
+  return h + '</tbody></table>';
+}
+function contagem(x){
+  var c = {I:0, R:0, S:0, B:0, O:0}, soma = 0, n = 0;
+  TCE.forEach(function(t){ var pf = perfil(t, t.get(x)); if (pf && pf.k){ c[pf.k]++; soma += NOTA[pf.k]; n++; } });
+  return {c:c, media: n ? soma / n : null, n:n};
 }
 function renderComp(){
-  var sel = $('selInd');
-  if (!sel.options.length) sel.innerHTML = IND.map(function(d, i){ return '<option value="' + i + '">' + d.g + ' · ' + esc(d.n) + '</option>'; }).join('');
+  var x = refX(), e = BYID[x.id] || {nome:x.id, uf:''};
+  var fontes = [x.d ? 'DCA ' + S.compAno : 'sem DCA', x.r ? 'RREO 6º bim.' : 'sem RREO', x.da != null ? 'MSC dez.' : 'sem MSC'].join(' · ');
+  $('fichaTit').innerHTML = 'Ficha de ' + esc(nomeUF(e)) + ' · exercício ' + S.compAno + ' <span class="note">(' + fontes + ')</span>';
+  $('tFicha').innerHTML = fichaHTML(x);
+  var ct = contagem(x);
+  $('cmpResumo').innerHTML = kpiS('Nota média do perfil', ct.media == null ? '—' : nf2.format(ct.media), 'Escala de 1 (Insatisfatório) a 5 (Ótimo) · ' + ct.n + ' índices classificados') +
+    ['O','B','S','R','I'].map(function(k){ return '<div class="card kpi"><div class="lbl">' + PERFIS[k].n + '</div><div class="val" style="color:' + PERFIS[k].c + '">' + ct.c[k] + '</div><div class="lim">índices</div></div>'; }).join('');
+  // matriz
+  var head = '<tr><th>Indicador</th><th>Padrão</th>' + S.comp.map(function(c){ var en = BYID[c.id] || {nome:c.id}; return '<th>' + esc(en.nome) + '</th>'; }).join('') + '</tr>';
+  var body = '';
+  GRUPOS.forEach(function(g, gi){
+    body += '<tr class="sec"><td colspan="' + (S.comp.length + 2) + '">' + (gi + 1) + '. ' + g + '</td></tr>';
+    TCE.filter(function(t){ return t.g === gi; }).forEach(function(t){
+      body += '<tr><td title="' + esc(t.fx) + '">' + esc(t.n) + '</td><td>' + t.f(S.padrao[t.k]) + '</td>' + S.comp.map(function(c){ var v = t.get(c); return '<td' + (c.id === x.id ? ' style="background:#eaf2fb"' : '') + '>' + t.f(v) + ' ' + chipP(perfil(t, v)) + '</td>'; }).join('') + '</tr>';
+    });
+  });
+  body += '<tr class="tot"><td>Nota média do perfil (1 a 5)</td><td></td>' + S.comp.map(function(c){ var m = contagem(c).media; return '<td>' + (m == null ? '—' : nf2.format(m)) + '</td>'; }).join('') + '</tr>';
+  $('tComp').innerHTML = '<table><thead>' + head + '</thead><tbody>' + body + '</tbody></table><p class="note">' + legendaPerfis() + '</p>';
   graficoComp();
-  var me = S.ente ? S.ente.id : null;
-  $('cmpTexto').innerHTML = IND.map(textoPosicao).filter(Boolean).map(function(t){ return '<li>' + t + '</li>'; }).join('') || '<li class="note">Carregue um município e rode a comparação.</li>';
-  var head = '<tr><th>Município</th><th>População</th>' + IND.map(function(d){ return '<th title="' + esc(d.n) + '">' + esc(curto(d)) + '</th>'; }).join('') + '</tr>';
-  var meds = '<tr class="tot"><td>Mediana do grupo</td><td></td>' + IND.map(function(d){ return '<td>' + d.f(mediana(S.comp.map(d.get))) + '</td>'; }).join('') + '</tr>';
-  var rows = S.comp.map(function(x){ var e = BYID[x.id] || {nome:x.id, uf:'', pop:null};
-    return '<tr' + (x.id === me ? ' class="me"' : '') + '><td>' + esc(nomeUF(e)) + '</td><td>' + (e.pop ? nf0.format(e.pop) : '—') + '</td>' + IND.map(function(d){ return '<td>' + d.f(d.get(x)) + '</td>'; }).join('') + '</tr>'; });
-  var per = S.comp.filter(function(x){ return x.rgf || x.rreo || x.dca; }).map(function(x){ return (BYID[x.id] || {}).nome + ': ' + [x.rgf ? 'RGF ' + x.rgf.short : null, x.rreo ? 'RREO ' + x.rreo.short : null, x.dca ? 'DCA ' + x.dca.ano : null].filter(Boolean).join(', '); });
-  $('tComp').innerHTML = '<table><thead>' + head + '</thead><tbody>' + rows.join('') + meds + '</tbody></table><p class="note">Períodos usados: ' + esc(per.join(' · ')) + '</p>';
 }
-function curto(d){ return {pessoal:'Pessoal % RCL', dcl:'DCL % RCL', realRec:'Receita / previsão', execDesp:'Empenho / dotação', primPc:'Primário R$/hab', rcPc:'Rec. corr. R$/hab', trib:'Tributária %', roy:'Royalties %', pesDesp:'Pessoal % desp.', inv:'Invest. % desp.', saude:'Saúde R$/hab', educ:'Educação R$/hab', liq:'Liquidez corr.', endiv:'Endividamento'}[d.k]; }
+function legendaPerfis(){ return ['I','R','S','B','O'].map(function(k){ return '<span class="pf" style="background:' + PERFIS[k].c + '">' + k + '</span> ' + PERFIS[k].n; }).join(' · ') + ' · n.c. = não classificado'; }
 function graficoComp(){
-  var ind = IND[+$('selInd').value || 0], L = ranking(ind), me = S.ente ? S.ente.id : null;
+  if (!S.comp.length || !S.padrao) return;
+  var t = TCE[+$('selInd').value || 0], me = S.ente ? S.ente.id : null;
+  var L = S.comp.map(function(c){ return {id:c.id, v:t.get(c)}; }).filter(function(c){ return c.v != null && isFinite(c.v); }).sort(function(a, b){ return b.v - a.v; });
   $('cmpChartBox').style.height = Math.max(220, L.length * 32 + 60) + 'px';
-  var cores = L.map(function(x){ return x.id === me ? '#d4621a' : '#1f5fa8'; });
-  if (ind.k === 'pessoal') cores = L.map(function(x){ var r = (S.comp.find(function(c){ return c.id === x.id; }) || {}).rgf; return COR[statusDe(x.v, r ? r.limMax : 54, true).c]; });
-  mkChart('chComp', {type:'bar', data:{labels:L.map(function(x){ return (BYID[x.id] || {}).nome || x.id; }), datasets:[{label:ind.n, data:L.map(function(x){ return x.v; }), backgroundColor:cores}]},
-    options:{indexAxis:'y', maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{callbacks:{label:function(c){ return ind.f(c.parsed.x); }}}}}});
-  var med = mediana(L.map(function(x){ return x.v; }));
-  $('cmpNota').innerHTML = 'Mediana do grupo: <b>' + ind.f(med) + '</b>' + (ind.k === 'pessoal' ? ' · cores pelo semáforo da LRF' : ' · em laranja, o município carregado no painel');
+  var cores = L.map(function(c){ var pf = perfil(t, c.v); return pf && pf.k ? PERFIS[pf.k].c : '#9aa3b2'; });
+  mkChart('chComp', {type:'bar', data:{labels:L.map(function(c){ return ((BYID[c.id] || {}).nome || c.id) + (c.id === me ? ' ◀' : ''); }), datasets:[{label:t.n, data:L.map(function(c){ return c.v; }), backgroundColor:cores}]},
+    options:{indexAxis:'y', maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{callbacks:{label:function(c){ var pf = perfil(t, c.parsed.x); return t.f(c.parsed.x) + (pf && pf.k ? ' · ' + PERFIS[pf.k].n + ' (' + varTxtP(pf) + ')' : ''); }}}}}});
+  $('cmpNota').innerHTML = esc(t.fx) + ' · Padrão (média do grupo): <b>' + t.f(S.padrao[t.k]) + '</b> · ' + (t.dir > 0 ? 'quanto maior, melhor' : 'quanto menor, melhor') + ' · cores pelo perfil';
 }
+var METODO = '<p><b>Fonte da metodologia:</b> ECG/TCE-RJ, <i>Análise das Demonstrações Contábeis Aplicadas ao Setor Público</i> (2026). Os dados vêm do Siconfi: DCA do exercício, RREO do 6º bimestre e MSC de dezembro.</p>' +
+  '<p><b>Padrão:</b> média aritmética do índice entre os municípios do grupo escolhido. <b>Variação:</b> (índice calculado ÷ padrão − 1) × 100, como na HP12C (padrão ENTER calculado Δ%). <b>Perfil:</b> variação de até 10% para mais ou para menos = Satisfatório. De 10,01% a 30% = Bom, se a favor do sentido desejável do índice, ou Razoável, se contra. Acima de 30,01% = Ótimo ou Insatisfatório. Nota de 1 (Insatisfatório) a 5 (Ótimo).</p>' +
+  '<p><b>Sentido de cada índice:</b> receitas e despesas por habitante, liquidez, solvência, investimento, receitas próprias, autonomia e execução da receita e da despesa: quanto maior, melhor. Endividamento, composição das exigibilidades, imobilização do PL, comprometimento das categorias econômicas, pessoal, resultado da execução, amortização e encargos da dívida: quanto menor, melhor.</p>' +
+  '<p><b>Adaptações aos dados disponíveis:</b> o PIB per capita não está no Siconfi e foi omitido. Saúde e educação usam a despesa empenhada nas funções 10 e 12, e não a ASPS e a MDE apuradas no SIOPS e no SIOPE. O repasse ao Legislativo usa a despesa da função 01 – Legislativa. A dívida ativa arrecadada vem das naturezas de receita de dívida ativa (tipos 3 e 4) na MSC de dezembro. Depósitos de diversas origens correspondem aos valores restituíveis (2.1.8.8). Restos a pagar processados = inscritos no exercício + saldo de exercícios anteriores. Com PL negativo, a imobilização do PL não é classificada e fica fora do padrão. Um índice também não é classificado quando o padrão é zero ou negativo.</p>' +
+  '<p><b>Observação:</b> as tabelas de exemplo do manual têm alguns perfis que não seguem a própria regra, como a execução da despesa. Aqui a regra é aplicada de forma uniforme, e para a execução da despesa vale o texto do manual (percentuais elevados indicam execução integral).</p>';
 
 /* ================= Exportação ================= */
 function tabela(qual){
@@ -841,8 +942,13 @@ function tabela(qual){
   if (qual === 'dca') return [['Item'].concat(S.dca.map(function(d){ return String(d.ano); }))].concat(DCA_LINHAS.filter(function(l){ return l[0] !== 's'; }).map(function(l){ return [l[1].replace(/^· /,'  ')].concat(S.dca.map(function(d){ return d[l[0]]; })); }));
   if (qual === 'fun'){ var dd = S.dca[S.dca.length-1]; return [['Função','Empenhado ' + (dd ? dd.ano : ''),'Per capita']].concat(dd ? dd.funcoes.map(function(f){ return [f.cod + ' - ' + f.nome, f.v, f.v / S.ente.pop]; }) : []); }
   if (qual === 'msc') return [['Conta','Descrição','Saldo atual','Saldo comparação']].concat(S.msc && S.msc.tabela ? S.msc.tabela : []);
-  return [['Município','UF','População'].concat(IND.map(function(d){ return d.n; }))].concat(
-    S.comp.map(function(x){ var e = BYID[x.id] || {}; return [e.nome, e.uf, e.pop].concat(IND.map(function(d){ return d.get(x); })); }));
+  if (!S.padrao) return [[]];
+  var cab = ['Grupo','Indicador','Fórmula','Padrão (média)'];
+  S.comp.forEach(function(c){ var n = (BYID[c.id] || {}).nome || c.id; cab.push(n, n + ' · variação %', n + ' · perfil'); });
+  return [cab].concat(TCE.map(function(t){
+    var l = [GRUPOS[t.g], t.n, t.fx, S.padrao[t.k]];
+    S.comp.forEach(function(c){ var v = t.get(c), pf = perfil(t, v); l.push(v, pf && pf.v != null ? pf.v : null, pf ? (pf.k ? PERFIS[pf.k].n : 'n.c.') : ''); });
+    return l; }));
 }
 function celula(v){
   if (v == null || (typeof v === 'number' && isNaN(v))) return '';
@@ -897,16 +1003,15 @@ function relEnte(){
   imprimir(h);
 }
 function relComp(){
-  if (!S.comp.length) return xmsg('Rode a comparação na aba Comparar municípios primeiro.');
-  var hoje = new Date().toLocaleDateString('pt-BR'), me = S.ente ? S.ente.id : null;
-  var nomes = S.comp.map(function(x){ return (BYID[x.id] || {}).nome; }).join(', ');
-  var h = '<h1>Relatório comparativo de indicadores fiscais</h1><p>' + (S.ente ? 'Município de referência: <b>' + esc(nomeUF(S.ente)) + '</b>. ' : '') + 'Grupo: ' + esc(nomes) + '. Fonte: Siconfi/STN, consulta em ' + hoje + '.</p>';
-  h += '<h2>Posição do município de referência</h2><ul>' + IND.map(textoPosicao).filter(Boolean).map(function(t){ return '<li>' + t + '</li>'; }).join('') + '</ul>';
-  IND.forEach(function(d){
-    var L = ranking(d); if (!L.length) return;
-    h += '<h2>' + esc(d.g + ' · ' + d.n) + '</h2><table><tr><th>#</th><th>Município</th><th>Valor</th></tr>' + L.map(function(x, i){ return '<tr' + (x.id === me ? ' style="font-weight:bold"' : '') + '><td>' + (i + 1) + '</td><td>' + esc((BYID[x.id] || {}).nome || x.id) + '</td><td>' + d.f(x.v) + '</td></tr>'; }).join('') + '<tr><td></td><td>Mediana</td><td>' + d.f(mediana(L.map(function(x){ return x.v; }))) + '</td></tr></table>';
-  });
-  h += '<p>Notas: RGF e RREO mais recentes disponíveis de cada município; DCA do último exercício entregue. Per capita com a população atual do cadastro do Siconfi. Despesas por função são empenhadas e não equivalem aos mínimos constitucionais de saúde e educação, apurados no SIOPS e no SIOPE.</p>';
+  if (!S.comp.length || !S.padrao) return xmsg('Rode a análise na aba Comparar (TCE-RJ) primeiro.');
+  var hoje = new Date().toLocaleDateString('pt-BR'), x = refX(), e = BYID[x.id] || {nome:x.id, uf:''}, ct = contagem(x);
+  var nomes = S.comp.map(function(c){ return (BYID[c.id] || {}).nome; }).join(', ');
+  var h = '<h1>Análise das demonstrações contábeis · ' + esc(nomeUF(e)) + ' · exercício ' + S.compAno + '</h1>';
+  h += '<p>Metodologia ECG/TCE-RJ. Grupo de comparação (padrão = média): ' + esc(nomes) + '. Fonte: Siconfi/STN (DCA, RREO do 6º bimestre e MSC de dezembro), consulta em ' + hoje + '.</p>';
+  h += '<p><b>Resumo do perfil:</b> nota média ' + (ct.media == null ? '—' : nf2.format(ct.media)) + ' (1 a 5) · ' + ['O','B','S','R','I'].map(function(k){ return ct.c[k] + ' ' + PERFIS[k].n.toLowerCase(); }).join(', ') + '.</p>';
+  h += '<h2>Ficha do município</h2>' + fichaHTML(x);
+  h += '<h2>Matriz do grupo</h2>' + $('tComp').innerHTML;
+  h += '<h2>Metodologia</h2>' + METODO;
   h += assinatura();
   imprimir(h);
 }
@@ -951,7 +1056,9 @@ function iniciar(){
   msg('');
   loadEntes().then(function(){
     COMP = compIds(); renderChips();
-    $('selInd').innerHTML = IND.map(function(d, i){ return '<option value="' + i + '">' + d.g + ' · ' + esc(d.n) + '</option>'; }).join('');
+    $('selInd').innerHTML = TCE.map(function(t, i){ return '<option value="' + i + '">' + esc(t.n) + '</option>'; }).join('');
+    var Y = new Date().getFullYear(); $('cmpAno').innerHTML = [Y-1, Y-2, Y-3].map(function(a){ return '<option>' + a + '</option>'; }).join('');
+    $('metodo').innerHTML = METODO;
     var id = +LS.get('siconfi_ente', DEFAULT_ENTE), e = BYID[id] || BYID[DEFAULT_ENTE];
     return carregar(e);
   }).catch(erro);
