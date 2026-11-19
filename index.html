@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Painel Fiscal Municipal · Siconfi</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{--bg:#f5f6f8;--card:#fff;--ink:#1c2433;--mute:#5d6778;--line:#e2e5eb;--acc:#1f5fa8;--navy:#0f2a4a;--ok:#1e8e5a;--alerta:#b98200;--prud:#d4621a;--exc:#c4302b}
+*{box-sizing:border-box}
+body{margin:0;font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+header{background:var(--navy);color:#fff;padding:14px 20px;display:flex;flex-wrap:wrap;gap:12px 24px;align-items:center}
+header h1{font-size:17px;margin:0;font-weight:650}
+header .sub{font-size:12px;opacity:.7}
+.search{display:flex;gap:6px;flex:1;min-width:260px;max-width:560px;margin-left:auto}
+input,select,button{font:inherit}
+input[type=text],input[type=search],input[type=url],select{padding:7px 10px;border:1px solid var(--line);border-radius:6px;width:100%;background:#fff;color:var(--ink)}
+select{width:auto}
+button{padding:7px 12px;border-radius:6px;border:1px solid var(--acc);background:var(--acc);color:#fff;cursor:pointer;white-space:nowrap}
+button.sec{background:#fff;color:var(--acc)}
+button:disabled{opacity:.5;cursor:default}
+nav{display:flex;gap:2px;padding:0 20px;background:#fff;border-bottom:1px solid var(--line);overflow-x:auto}
+nav a{padding:11px 13px;color:var(--mute);text-decoration:none;border-bottom:2px solid transparent;white-space:nowrap;cursor:pointer;user-select:none}
+nav a.on{color:var(--acc);border-color:var(--acc);font-weight:600}
+main{padding:18px 20px 40px;max-width:1280px;margin:0 auto}
+.view{display:none}.view.on{display:block}
+.meta{color:var(--mute);margin:0 0 14px}
+.meta b{color:var(--ink)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;min-width:0}
+.kpi .lbl{font-size:11.5px;color:var(--mute);text-transform:uppercase;letter-spacing:.04em}
+.kpi .val{font-size:26px;font-weight:650;margin:4px 0 2px;font-variant-numeric:tabular-nums}
+.kpi .lim{font-size:12px;color:var(--mute)}
+.bar{height:6px;background:#eef0f4;border-radius:3px;margin:8px 0 8px;position:relative}
+.bar i{position:absolute;left:0;top:0;bottom:0;border-radius:3px}
+.bar s{position:absolute;top:-3px;bottom:-3px;width:2px;background:#1c2433;opacity:.55}
+.chip{display:inline-block;font-size:11px;font-weight:650;padding:2px 8px;border-radius:10px;color:#fff}
+.s-ok{background:var(--ok)}.s-alerta{background:var(--alerta)}.s-prud{background:var(--prud)}.s-exc{background:var(--exc)}.s-na{background:#9aa3b2}
+h2{font-size:14.5px;margin:0 0 10px}
+h3{font-size:13px;margin:14px 0 6px;color:var(--mute);text-transform:uppercase;letter-spacing:.04em}
+.two{display:grid;grid-template-columns:1fr;gap:12px}
+.two>*{min-width:0}
+@media(min-width:980px){.two{grid-template-columns:3fr 2fr}.two.eq{grid-template-columns:1fr 1fr}}
+table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
+th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+td.txt{text-align:left;white-space:normal;min-width:220px}
+th{color:var(--mute);font-weight:600;background:#fafbfc;position:sticky;top:0;z-index:1}
+tr.tot td{font-weight:650;border-top:1px solid #c9ced8}
+tr.sec td{background:#f3f5f9;font-weight:650;color:#33405a}
+tr.pico td{background:#fff7e6}
+tr.me td{background:#eaf2fb;font-weight:600}
+tr.click{cursor:pointer}tr.click:hover td{background:#f4f8fd}
+.pos{color:var(--ok)}.neg{color:var(--exc)}
+.tbl{overflow:auto;max-height:560px}
+.obs{padding-left:18px;margin:0}
+.obs li{margin:0 0 9px}
+.note{font-size:12px;color:var(--mute)}
+.err{background:#fdecea;color:#8a1c17;border:1px solid #f5c2bd;padding:10px 12px;border-radius:8px;margin-bottom:12px}
+.info{background:#eaf2fb;color:#163a63;border:1px solid #c8dcf2;padding:10px 12px;border-radius:8px;margin-bottom:12px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+.chips span{background:#e8eef7;border-radius:14px;padding:3px 8px 3px 10px;font-size:12.5px}
+.chips b{cursor:pointer;margin-left:6px;color:var(--mute)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.row label{font-size:12.5px;color:var(--mute)}
+.chart{position:relative;height:320px}
+.crumb a{color:var(--acc);cursor:pointer}
+.form{max-width:640px}
+.form label{display:block;margin:14px 0 4px;font-weight:600;font-size:13px}
+code{background:#eef0f4;padding:1px 5px;border-radius:4px;font-size:12px}
+#print{display:none;font-size:11.5px;color:#000}
+#print h1{font-size:18px;margin:0 0 4px}
+#print h2{font-size:14px;margin:18px 0 6px;border-bottom:1px solid #999;padding-bottom:3px}
+#print table{font-size:10.5px;margin-bottom:6px}
+#print th{position:static;background:#eee}
+#print .ass{margin-top:40px}
+@media print{header,nav,main{display:none!important}#print{display:block}body{background:#fff}}
+</style>
+</head>
+<body>
+<header>
+  <div><h1>Painel Fiscal Municipal</h1><div class="sub">Dados abertos do Siconfi · Tesouro Nacional</div></div>
+  <form class="search" id="fBusca"><input type="search" id="qEnte" list="dlEntes" placeholder="Município, ex.: Campos dos Goytacazes - RJ" autocomplete="off"><datalist id="dlEntes"></datalist><button>Carregar</button></form>
+</header>
+<nav id="tabs"><a data-v="painel" class="on">Gestão fiscal (RGF)</a><a data-v="mensal">Pessoal mês a mês</a><a data-v="rreo">Execução orçamentária (RREO)</a><a data-v="dca">Balanço anual (DCA)</a><a data-v="msc">Contabilidade (MSC)</a><a data-v="comparar">Comparar municípios</a><a data-v="relatorios">Relatórios e exportação</a><a data-v="config">Configurações</a></nav>
+<main>
+<div id="msg"></div>
+
+<section class="view on" id="v-painel">
+  <p class="meta" id="pMeta">Carregando…</p>
+  <div class="grid" id="kpis"></div>
+  <div class="two">
+    <div class="card"><h2>Despesa com pessoal do Executivo (% da RCL ajustada)</h2><div class="chart"><canvas id="chSerie"></canvas></div></div>
+    <div class="card"><h2>Observações automáticas</h2><ul class="obs" id="obs"></ul><p class="note">Sinais gerados por regras simples sobre os valores declarados. Confirme nas notas explicativas antes de concluir.</p></div>
+  </div>
+  <div class="card" style="margin-top:12px"><h2>Série histórica</h2><div class="tbl" id="tSerie"></div></div>
+</section>
+
+<section class="view" id="v-mensal">
+  <p class="meta" id="mMeta"></p>
+  <div class="card"><h2>Despesa bruta com pessoal por mês (R$ milhões)</h2><div class="chart"><canvas id="chMes"></canvas></div></div>
+  <div class="card" style="margin-top:12px"><div class="tbl" id="tMes"></div><p class="note">Linhas destacadas: meses acima de 125% da mediana (13º salário, férias, retroativos ou pagamentos extraordinários).</p></div>
+</section>
+
+<section class="view" id="v-rreo">
+  <p class="meta" id="rMeta">Carregando…</p>
+  <div class="grid" id="rKpis"></div>
+  <div class="two">
+    <div class="card"><h2>Receita corrente líquida mês a mês (R$ milhões)</h2><div class="chart"><canvas id="chRcl"></canvas></div></div>
+    <div class="card"><h2>Composição da receita corrente (12 meses)</h2><div class="tbl" id="tRec"></div></div>
+  </div>
+  <div class="card" style="margin-top:12px"><h2>Restos a pagar</h2><div class="tbl" id="tRP"></div></div>
+</section>
+
+<section class="view" id="v-dca">
+  <p class="meta" id="dMeta">Carregando…</p>
+  <div class="card"><h2>Análise horizontal dos balanços anuais</h2><div class="tbl" id="tDca"></div><p class="note">Receitas brutas realizadas (exceto intraorçamentárias). Despesas empenhadas. Balanço patrimonial em 31/12. Per capita com a população atual do cadastro do Siconfi.</p></div>
+  <div class="two" style="margin-top:12px">
+    <div class="card"><h2>Despesa por função (empenhada, R$ milhões)</h2><div class="chart" id="funBox"><canvas id="chFun"></canvas></div></div>
+    <div class="card"><h2>Por função · per capita</h2><div class="tbl" id="tFun"></div></div>
+  </div>
+</section>
+
+<section class="view" id="v-msc">
+  <div class="card">
+    <div class="row">
+      <label>Ano <select id="mAno"></select></label>
+      <label>Mês <select id="mMes"></select></label>
+      <label>Classe <select id="mClasse"><option value="1">1 · Ativo</option><option value="2">2 · Passivo e PL</option><option value="3">3 · VPD</option><option value="4">4 · VPA</option></select></label>
+      <label>Comparar com <select id="mCmp"><option value="ant">mês anterior</option><option value="dez">dezembro do ano anterior</option><option value="aa">mesmo mês do ano anterior</option></select></label>
+      <label>Poder <select id="mPoder"><option value="">todos</option><option value="10">Executivo</option><option value="20">Legislativo</option></select></label>
+      <button id="bMsc">Consultar</button>
+    </div>
+    <p class="note">Matriz de Saldos Contábeis (MSC agregada), saldo final do mês. Clique numa conta para abrir o nível seguinte.</p>
+  </div>
+  <p class="meta" id="mscMeta" style="margin-top:12px"></p>
+  <div class="two">
+    <div class="card"><div class="crumb note" id="mscCrumb"></div><div class="tbl" id="tMsc"></div></div>
+    <div class="card"><h2>Caixa e equivalentes por fonte de recursos</h2><div class="tbl" id="tFonte"><p class="note">Disponível para a classe 1.</p></div></div>
+  </div>
+</section>
+
+<section class="view" id="v-comparar">
+  <div class="card">
+    <div class="row"><div style="flex:1;min-width:240px"><input type="search" id="qComp" list="dlEntes" placeholder="Adicionar município…" autocomplete="off"></div><button class="sec" id="bAdd">Adicionar</button><button class="sec" id="bPreset">Norte Fluminense e similares</button><button class="sec" id="bLimpar">Limpar</button><button id="bComparar">Comparar</button></div>
+    <div class="chips" id="chips"></div>
+    <p class="note">Usa o RGF e o RREO mais recentes e o último balanço anual (DCA) de cada município. O município carregado no painel entra sempre na comparação.</p>
+  </div>
+  <div class="two" style="margin-top:12px">
+    <div class="card"><div class="row" style="margin-bottom:8px"><select id="selInd" style="max-width:100%"></select></div><div class="chart" id="cmpChartBox"><canvas id="chComp"></canvas></div><p class="note" id="cmpNota"></p></div>
+    <div class="card"><h2>Posição do município no grupo</h2><ul class="obs" id="cmpTexto"><li class="note">Clique em Comparar.</li></ul></div>
+  </div>
+  <div class="card" style="margin-top:12px"><h2>Todos os indicadores</h2><div class="tbl" id="tComp"></div></div>
+</section>
+
+<section class="view" id="v-relatorios">
+  <div class="two eq">
+    <div class="card">
+      <h2>Relatórios para impressão / PDF</h2>
+      <div class="row"><button id="bRelEnte">Relatório do município</button><button id="bRelComp">Relatório comparativo</button></div>
+      <p class="note">O relatório do município reúne gestão fiscal, execução orçamentária e balanços anuais. O comparativo usa o grupo da aba Comparar. Saem com nome, matrícula e data definidos em Configurações. Use "Salvar como PDF" na janela de impressão.</p>
+    </div>
+    <div class="card">
+      <h2>Planilhas (CSV para Excel, separador ;)</h2>
+      <div class="row"><button class="sec" data-x="serie">RGF · série</button><button class="sec" data-x="mensal">Pessoal mensal</button><button class="sec" data-x="rec">RREO · receitas</button><button class="sec" data-x="dca">DCA · balanços</button><button class="sec" data-x="fun">DCA · funções</button><button class="sec" data-x="msc">MSC · saldos</button><button class="sec" data-x="comp">Comparação</button></div>
+      <p class="note" style="margin-top:10px">Para colar direto no Excel:</p>
+      <div class="row"><button class="sec" data-c="serie">Copiar RGF</button><button class="sec" data-c="dca">Copiar DCA</button><button class="sec" data-c="comp">Copiar comparação</button></div>
+      <p class="note" id="xMsg"></p>
+    </div>
+  </div>
+</section>
+
+<section class="view" id="v-config">
+  <div class="card form">
+    <h2>Acesso aos dados</h2>
+    <p class="note" id="modo"></p>
+    <label for="cProxy">URL do proxy</label>
+    <input type="url" id="cProxy" placeholder="https://SEU-PROJETO.supabase.co/functions/v1/siconfi">
+    <p class="note">A API do Siconfi não aceita chamadas diretas de outros sites (CORS). O app passa pelo proxy, que só repassa as consultas públicas. Veja o README.</p>
+    <h2 style="margin-top:22px">Assinatura dos relatórios</h2>
+    <label for="cNome">Nome</label><input type="text" id="cNome">
+    <label for="cMat">Matrícula</label><input type="text" id="cMat">
+    <div class="row" style="margin-top:16px"><button id="bSalvar">Salvar</button><span class="note" id="cMsg"></span></div>
+  </div>
+</section>
+</main>
+<div id="print"></div>
+
+<script>
+(function(){
+'use strict';
+/* ================= Configuração ================= */
+var DEFAULT_PROXY = ''; // ex.: 'https://SEU-PROJETO.supabase.co/functions/v1/siconfi'
+var DEFAULT_ENTE = 3301009; // Campos dos Goytacazes
+var PRESET = [3301009,3302403,3305000,3304524,3300704,3303302,3303906,3306305,3303401,3305802];
+var MESES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+var MESES_L = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+
+var LS = {
+  get: function(k,d){ try { var v = localStorage.getItem(k); return v === null ? d : v; } catch(e){ return d; } },
+  set: function(k,v){ try { localStorage.setItem(k,v); } catch(e){} }
+};
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+var nf2 = new Intl.NumberFormat('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+var nf1 = new Intl.NumberFormat('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
+var nf0 = new Intl.NumberFormat('pt-BR',{maximumFractionDigits:0});
+function brl(v){ return v == null || isNaN(v) ? '—' : 'R$ ' + nf2.format(v); }
+function mi(v){ return v == null || isNaN(v) ? '—' : 'R$ ' + nf1.format(v/1e6) + ' mi'; }
+function rs0(v){ return v == null || isNaN(v) ? '—' : 'R$ ' + nf0.format(v); }
+function pct(v){ return v == null || isNaN(v) ? '—' : nf2.format(v) + '%'; }
+function pct1(v){ return v == null || isNaN(v) ? '—' : nf1.format(v) + '%'; }
+function num2(v){ return v == null || isNaN(v) ? '—' : nf2.format(v); }
+function pp(v){ return (v > 0 ? '+' : '') + nf2.format(v) + ' p.p.'; }
+function varp(a, b){ return (a == null || b == null || !b) ? null : (a / b - 1) * 100; }
+function vcls(v){ return v == null ? '' : (v >= 0 ? 'pos' : 'neg'); }
+function div(a, b){ return (a == null || b == null || !b) ? null : a / b; }
+
+/* ================= Acesso à API ================= */
+function apiBase(){
+  if (location.hostname === 'apidatalake.tesouro.gov.br') return location.origin + '/ords/siconfi/tt/';
+  var p = (LS.get('siconfi_proxy','') || DEFAULT_PROXY).replace(/\/+$/,'');
+  return p ? p + '/' : '';
+}
+var cache = {};
+function api(path, params){
+  var base = apiBase();
+  if (!base) return Promise.reject(new Error('SEM_PROXY'));
+  var qs = Object.keys(params || {}).map(function(k){ return k + '=' + encodeURIComponent(params[k]); }).join('&');
+  var url = base + path + '?' + qs;
+  if (cache[url]) return cache[url];
+  var all = [];
+  function page(off){
+    return fetch(url + (off ? '&offset=' + off : '')).then(function(r){
+      if (!r.ok) throw new Error('A API respondeu ' + r.status + ' em ' + path);
+      return r.json();
+    }).then(function(j){
+      var it = j.items || [];
+      all = all.concat(it);
+      if (j.hasMore && it.length) return page(off + it.length);
+      return all;
+    });
+  }
+  cache[url] = page(0).catch(function(e){ delete cache[url]; throw e; });
+  return cache[url];
+}
+function pool(fns, n){
+  var res = new Array(fns.length), i = 0;
+  function next(){
+    if (i >= fns.length) return Promise.resolve();
+    var k = i++;
+    return fns[k]().then(function(v){ res[k] = v; }, function(e){ res[k] = {erro: e}; }).then(next);
+  }
+  var ws = []; for (var w = 0; w < Math.min(n, fns.length); w++) ws.push(next());
+  return Promise.all(ws).then(function(){ return res; });
+}
+function anosRecentes(n){ var Y = new Date().getFullYear(), a = []; for (var i = n-1; i >= 0; i--) a.push(Y - i); return a; }
+
+/* ================= Entes ================= */
+var ENTES = [], BYID = {};
+function loadEntes(){
+  var cached = null;
+  try { cached = JSON.parse(LS.get('siconfi_entes','null')); } catch(e){}
+  if (cached && cached.t > Date.now() - 7*864e5 && cached.d && cached.d.length) return Promise.resolve(setEntes(cached.d));
+  return api('entes',{}).then(function(items){
+    var d = items.filter(function(e){ return e.esfera === 'M'; }).map(function(e){ return [e.cod_ibge, e.ente, e.uf, e.populacao]; });
+    LS.set('siconfi_entes', JSON.stringify({t: Date.now(), d: d}));
+    return setEntes(d);
+  });
+}
+function setEntes(d){
+  ENTES = d.map(function(a){ return {id:a[0], nome:a[1], uf:a[2], pop:a[3]}; });
+  ENTES.sort(function(a,b){ return a.nome.localeCompare(b.nome,'pt-BR'); });
+  BYID = {}; ENTES.forEach(function(e){ BYID[e.id] = e; });
+  $('dlEntes').innerHTML = ENTES.map(function(e){ return '<option value="' + esc(nomeUF(e)) + '">'; }).join('');
+  return ENTES;
+}
+function nomeUF(e){ return e.nome + ' - ' + e.uf; }
+function findEnte(txt){
+  var t = (txt || '').trim().toLowerCase(); if (!t) return null;
+  return ENTES.find(function(e){ return nomeUF(e).toLowerCase() === t; }) ||
+         ENTES.find(function(e){ return e.nome.toLowerCase() === t; }) || null;
+}
+
+/* ================= Entregas ================= */
+function kindOf(s){
+  if (/Gest.o Fiscal/i.test(s)) return 'RGF';
+  if (/Resumido/i.test(s)) return 'RREO';
+  if (/MSC/i.test(s)) return 'MSC';
+  return null;
+}
+function entregas(id, anos){
+  return Promise.all(anos.map(function(a){ return api('extrato_entregas',{id_ente:id, an_referencia:a}).catch(function(){ return []; }); })).then(function(ls){
+    var out = [], seen = {};
+    [].concat.apply([], ls).forEach(function(i){
+      var kind = kindOf(i.entregavel || ''); if (!kind) return;
+      var poder = /C.mara/i.test(i.instituicao) ? 'L' : (/Prefeitura/i.test(i.instituicao) ? 'E' : null);
+      if (!poder) return;
+      var k = kind + poder + i.exercicio + i.periodicidade + i.periodo;
+      if (seen[k]) return; seen[k] = 1;
+      var simp = /Simplificado/i.test(i.entregavel);
+      out.push({kind:kind, poder:poder, ano:+i.exercicio, per:i.periodicidade, p:+i.periodo,
+        tipo: kind === 'RGF' ? (simp ? 'RGF Simplificado' : 'RGF') : (kind === 'RREO' ? (simp ? 'RREO Simplificado' : 'RREO') : null)});
+    });
+    out.sort(function(a,b){ return (a.ano - b.ano) || (a.p - b.p); });
+    return out;
+  });
+}
+function filtra(ents, kind, poder){ return ents.filter(function(x){ return x.kind === kind && x.poder === poder; }); }
+
+/* ================= RGF ================= */
+function rgf(id, e){
+  return api('rgf',{an_exercicio:e.ano, in_periodicidade:e.per, nr_periodo:e.p, co_tipo_demonstrativo:e.tipo, co_esfera:'M', co_poder:e.poder, id_ente:id});
+}
+function pick(items, anexo, reConta, col){
+  for (var i = 0; i < items.length; i++){
+    var x = items[i];
+    if (x.anexo.indexOf(anexo) < 0 || !reConta.test(x.conta)) continue;
+    if (typeof col === 'string' ? x.coluna === col : col.test(x.coluna)) return +x.valor;
+  }
+  return null;
+}
+var T12 = /TOTAL \(.LTIMOS 12 MESES\)/i, VAL = /^Valor/i, PCT = /%/;
+function parseRGF(items, e){
+  var A1 = 'Anexo 01', A2 = 'Anexo 02', A4 = 'Anexo 04';
+  var r = {ano:e.ano, per:e.per, p:e.p, poder:e.poder, tipo:e.tipo};
+  r.label = e.p + 'º ' + (e.per === 'Q' ? 'quadrimestre' : 'semestre') + ' de ' + e.ano;
+  r.short = e.p + (e.per === 'Q' ? 'Q' : 'S') + '/' + String(e.ano).slice(2);
+  r.dtp = pick(items, A1, /^DESPESA TOTAL COM PESSOAL/i, VAL);
+  r.dtpPct = pick(items, A1, /^DESPESA TOTAL COM PESSOAL/i, PCT);
+  r.rclAj = pick(items, A1, /AJUSTADA/i, VAL);
+  r.rcl = pick(items, A1, /^RECEITA CORRENTE L.QUIDA - RCL/i, VAL);
+  r.limMax = pick(items, A1, /^LIMITE M.XIMO/i, PCT);
+  r.bruta = pick(items, A1, /^DESPESA BRUTA COM PESSOAL/i, T12);
+  r.ativo = pick(items, A1, /^Pessoal Ativo/i, T12);
+  r.inativo = pick(items, A1, /^Pessoal Inativo/i, T12);
+  r.naoComp = pick(items, A1, /^DESPESAS N.O COMPUTADAS/i, T12);
+  r.inatVinc = pick(items, A1, /^Inativos e Pensionistas com Recursos/i, T12);
+  r.liquida = pick(items, A1, /^DESPESA L.QUIDA COM PESSOAL/i, T12);
+  if (r.dtp != null && r.liquida != null) r.rpnp = r.dtp - r.liquida;
+  var colRe = new RegExp('At. o ' + e.p + '. (Quadrimestre|Semestre)', 'i');
+  r.dcl = pick(items, A2, /^D.VIDA CONSOLIDADA L.QUIDA/i, colRe);
+  r.dclPct = pick(items, A2, /^% da DCL/i, colRe);
+  r.opcPct = pick(items, A4, /TOTAL CONSIDERADO/i, PCT);
+  if (r.dtpPct == null && r.dtp != null && r.rclAj) r.dtpPct = r.dtp / r.rclAj * 100;
+  if (r.limMax == null) r.limMax = e.poder === 'L' ? 6 : 54;
+  var endM = (e.per === 'Q' ? 4 : 6) * e.p;
+  r.mensal = [];
+  for (var k = 11; k >= 0; k--){
+    var col = k ? '<MR-' + k + '>' : '<MR>';
+    var b = pick(items, A1, /^DESPESA BRUTA COM PESSOAL/i, col);
+    if (b == null) continue;
+    var m = endM - 1 - k, y = e.ano; while (m < 0){ m += 12; y--; }
+    r.mensal.push({mes: MESES[m] + '/' + String(y).slice(2), bruta:b,
+      ativo: pick(items, A1, /^Pessoal Ativo/i, col), inativo: pick(items, A1, /^Pessoal Inativo/i, col),
+      naoComp: pick(items, A1, /^DESPESAS N.O COMPUTADAS/i, col), liquida: pick(items, A1, /^DESPESA L.QUIDA COM PESSOAL/i, col)});
+  }
+  return r;
+}
+function statusDe(v, lim, comPrud){
+  if (v == null) return {c:'na', t:'Sem dado', s:'—'};
+  if (v >= lim) return {c:'exc', t:'Acima do limite máximo', s:'máximo'};
+  if (comPrud && v >= lim*0.95) return {c:'prud', t:'Acima do limite prudencial', s:'prudencial'};
+  if (v >= lim*0.9) return {c:'alerta', t:'Acima do limite de alerta', s:'alerta'};
+  return {c:'ok', t:'Abaixo do limite de alerta', s:'ok'};
+}
+var COR = {ok:'#1e8e5a', alerta:'#b98200', prud:'#d4621a', exc:'#c4302b', na:'#9aa3b2'};
+
+/* ================= RREO ================= */
+function rreo(id, e, anexo){
+  var q = {an_exercicio:e.ano, nr_periodo:e.p, co_tipo_demonstrativo:e.tipo, id_ente:id};
+  if (anexo) q.no_anexo = anexo;
+  return api('rreo', q);
+}
+function parseRREO(items, e){
+  var r = {ano:e.ano, p:e.p, label: e.p + 'º bimestre de ' + e.ano, short: e.p + 'B/' + String(e.ano).slice(2)};
+  var A14 = 'Anexo 14', ATE = /At. o Bimestre|Apurado/i;
+  r.prevIni = pick(items, A14, /^Previs.o Inicial/i, ATE);
+  r.prev = pick(items, A14, /^Previs.o Atualizada/i, ATE);
+  r.rec = pick(items, A14, /^Receitas Realizadas/i, ATE);
+  r.dotIni = pick(items, A14, /^Dota..o Inicial/i, ATE);
+  r.dot = pick(items, A14, /^Dota..o Atualizada/i, ATE);
+  r.emp = pick(items, A14, /^Despesas Empenhadas/i, ATE);
+  r.liq = pick(items, A14, /^Despesas Liquidadas/i, ATE);
+  r.pag = pick(items, A14, /^Despesas Pagas/i, ATE);
+  r.sup = pick(items, A14, /^Super.vit Or/i, ATE);
+  var def = pick(items, A14, /^D.ficit Or/i, ATE); if (r.sup == null && def != null) r.sup = -def;
+  r.prim = pick(items, A14, /^RESULTADO PRIM/i, /./);
+  r.nom = pick(items, A14, /^RESULTADO NOMINAL/i, /./);
+  r.rcl = pick(items, A14, /^Receita Corrente L.quida$/i, ATE);
+  r.rpp = {insc: pick(items, A14, /^RESTOS A PAGAR PROCESSADOS/i, /Inscri/i), pag: pick(items, A14, /^RESTOS A PAGAR PROCESSADOS/i, /Pagamento/i), saldo: pick(items, A14, /^RESTOS A PAGAR PROCESSADOS/i, /Saldo/i)};
+  r.rpn = {insc: pick(items, A14, /^RESTOS A PAGAR N.O PROCESSADOS/i, /Inscri/i), pag: pick(items, A14, /^RESTOS A PAGAR N.O PROCESSADOS/i, /Pagamento/i), saldo: pick(items, A14, /^RESTOS A PAGAR N.O PROCESSADOS/i, /Saldo/i)};
+  var A3 = 'Anexo 03';
+  r.receitas = [['IPTU',/^IPTU$/],['ISS',/^ISS$/],['ITBI',/^ITBI$/],['IRRF',/^IRRF$/],['Outros impostos, taxas e contribuições de melhoria',/^Outros Impostos/i],['Contribuições',/^Contribui..es$/],['Receita patrimonial',/^Receita Patrimonial$/i],['Cota-parte do FPM',/^Cota-Parte do FPM/i],['Cota-parte do ICMS',/^Cota-Parte do ICMS/i],['Cota-parte do IPVA',/^Cota-Parte do IPVA/i],['Transferências do FUNDEB',/^Transfer.ncias do FUNDEB/i],['Outras transferências correntes (inclui royalties)',/^Outras Transfer.ncias Correntes/i],['Outras receitas correntes',/^Outras Receitas Correntes/i],['Receitas correntes (bruta)',/^RECEITAS CORRENTES/i],['(−) Deduções',/^DEDU..ES/i],['Receita corrente líquida',/^RECEITA CORRENTE L.QUIDA \(III\)/i]]
+    .map(function(a){ return {nome:a[0], v:pick(items, A3, a[1], T12)}; }).filter(function(x){ return x.v != null; });
+  r.rclMes = [];
+  var endM = 2 * e.p;
+  for (var k = 11; k >= 0; k--){
+    var col = k ? '<MR-' + k + '>' : '<MR>';
+    var v = pick(items, A3, /^RECEITA CORRENTE L.QUIDA \(III\)/i, col); if (v == null) continue;
+    var m = endM - 1 - k, y = e.ano; while (m < 0){ m += 12; y--; }
+    r.rclMes.push({mes: MESES[m] + '/' + String(y).slice(2), v:v});
+  }
+  return r;
+}
+
+/* ================= DCA ================= */
+function dv(items, anexo, cod, col){
+  for (var i = 0; i < items.length; i++){ var x = items[i];
+    if (x.cod_conta === cod && x.anexo.indexOf(anexo) >= 0 && col.test(x.coluna)) return +x.valor; }
+  return null;
+}
+function soma(){ var s = null; for (var i = 0; i < arguments.length; i++) if (arguments[i] != null) s = (s || 0) + arguments[i]; return s; }
+function parseDCA(items, ano){
+  if (!items || !items.length) return null;
+  var B = /Brutas/i, EMP = /Empenhadas/i, ANY = /./, IC = 'I-C', ID = 'I-D', IAB = 'I-AB';
+  var d = {ano:ano};
+  d.recTotal = dv(items, IC, 'ReceitasExcetoIntraOrcamentarias', B);
+  d.dedFundeb = dv(items, IC, 'ReceitasExcetoIntraOrcamentarias', /FUNDEB/i);
+  d.dedOutras = dv(items, IC, 'ReceitasExcetoIntraOrcamentarias', /Outras Dedu/i);
+  d.recCorr = dv(items, IC, 'RO1.0.0.0.00.0.0', B);
+  d.recCap = dv(items, IC, 'RO2.0.0.0.00.0.0', B);
+  if (d.recTotal == null) d.recTotal = soma(d.recCorr, d.recCap);
+  d.trib = dv(items, IC, 'RO1.1.0.0.00.0.0', B);
+  d.iptu = dv(items, IC, 'RO1.1.1.2.50.0.0', B);
+  d.itbi = dv(items, IC, 'RO1.1.1.2.53.0.0', B);
+  d.iss = dv(items, IC, 'RO1.1.1.4.51.0.0', B);
+  d.irrf = dv(items, IC, 'RO1.1.1.3.00.0.0', B);
+  d.taxas = dv(items, IC, 'RO1.1.2.0.00.0.0', B);
+  d.contrib = dv(items, IC, 'RO1.2.0.0.00.0.0', B);
+  d.patrim = dv(items, IC, 'RO1.3.0.0.00.0.0', B);
+  d.transf = dv(items, IC, 'RO1.7.0.0.00.0.0', B);
+  d.roy = soma(dv(items, IC, 'RO1.7.1.2.00.0.0', B), dv(items, IC, 'RO1.7.2.2.00.0.0', B));
+  d.despCorr = dv(items, ID, 'DO3.0.00.00.00.00', EMP);
+  d.despCap = dv(items, ID, 'DO4.0.00.00.00.00', EMP);
+  d.despTotal = soma(d.despCorr, d.despCap);
+  d.pessoal = dv(items, ID, 'DO3.1.00.00.00.00', EMP);
+  d.juros = dv(items, ID, 'DO3.2.00.00.00.00', EMP);
+  d.outrasCorr = dv(items, ID, 'DO3.3.00.00.00.00', EMP);
+  d.invest = dv(items, ID, 'DO4.4.00.00.00.00', EMP);
+  d.amort = dv(items, ID, 'DO4.6.00.00.00.00', EMP);
+  d.ativo = dv(items, IAB, 'P1.0.0.0.0.00.00', ANY);
+  d.ac = dv(items, IAB, 'P1.1.0.0.0.00.00', ANY);
+  d.caixa = dv(items, IAB, 'P1.1.1.0.0.00.00', ANY);
+  d.anc = dv(items, IAB, 'P1.2.0.0.0.00.00', ANY);
+  d.pc = dv(items, IAB, 'P2.1.0.0.0.00.00', ANY);
+  d.pnc = dv(items, IAB, 'P2.2.0.0.0.00.00', ANY);
+  d.pl = dv(items, IAB, 'P2.3.0.0.0.00.00', ANY);
+  d.liqCorr = div(d.ac, d.pc);
+  d.liqImed = div(d.caixa, d.pc);
+  d.endiv = d.ativo ? (soma(d.pc, d.pnc) / d.ativo * 100) : null;
+  // funções
+  var fe = items.filter(function(x){ return x.anexo.indexOf('I-E') >= 0 && EMP.test(x.coluna); });
+  var started = !fe.some(function(x){ return /Exceto Intra/i.test(x.conta); }), fun = [], seen = {};
+  for (var i = 0; i < fe.length; i++){ var c = fe[i].conta;
+    if (/Exceto Intra/i.test(c)){ started = true; continue; }
+    if (started && /Intra/i.test(c)) break;
+    var m = /^(\d{2}) - (.+)$/.exec(c);
+    if (started && m && !seen[m[1]]){ seen[m[1]] = 1; fun.push({cod:m[1], nome:m[2], v:+fe[i].valor}); } }
+  d.funcoes = fun.sort(function(a,b){ return b.v - a.v; });
+  d.saude = (fun.find(function(f){ return f.cod === '10'; }) || {}).v;
+  d.educ = (fun.find(function(f){ return f.cod === '12'; }) || {}).v;
+  // dicionário de contas (para a MSC)
+  d.dict = {};
+  items.forEach(function(x){ if (/^P\d(\.\d){4}\.\d\d\.\d\d$/.test(x.cod_conta)){ var nm = String(x.conta).replace(/^[\d.]+\s*-\s*/, ''); d.dict[x.cod_conta.slice(1)] = nm; } });
+  return d;
+}
+function dcaAno(id, ano){ return api('dca',{an_exercicio:ano, id_ente:id}).then(function(it){ return parseDCA(it, ano); }); }
+
+/* ================= Estado e carga ================= */
+var S = {ente:null, E:[], L:[], rreo:null, dca:[], ents:[], comp:[], msc:null};
+function carregar(ente){
+  S.ente = ente; S.E = []; S.L = []; S.rreo = null; S.dca = []; S.msc = null; S.ents = [];
+  LS.set('siconfi_ente', ente.id);
+  $('qEnte').value = nomeUF(ente);
+  $('pMeta').innerHTML = 'Buscando relatórios de <b>' + esc(nomeUF(ente)) + '</b>…';
+  $('rMeta').textContent = 'Carregando…'; $('dMeta').textContent = 'Carregando…';
+  ['kpis','obs','tSerie','rKpis','tRec','tRP','tDca','tFun','tMsc','tFonte'].forEach(function(id){ $(id).innerHTML = ''; });
+  $('mscMeta').textContent = '';
+  msg('');
+  var Y = new Date().getFullYear();
+  var pDca = pool([Y-1, Y-2, Y-3].map(function(a){ return function(){ return dcaAno(ente.id, a); }; }), 3).then(function(rs){
+    S.dca = rs.filter(function(d){ return d && !d.erro; }).sort(function(a,b){ return a.ano - b.ano; });
+    renderDCA();
+  }).catch(function(e){ $('dMeta').textContent = 'Falha ao ler a DCA: ' + (e.message || e); });
+  return entregas(ente.id, anosRecentes(4)).then(function(ents){
+    S.ents = ents;
+    preencheMsc();
+    var R = filtra(ents, 'RREO', 'E');
+    var pR = R.length ? rreo(ente.id, R[R.length-1]).then(function(it){ S.rreo = parseRREO(it, R[R.length-1]); renderRREO(); }).catch(function(e){ $('rMeta').textContent = 'Falha ao ler o RREO: ' + (e.message || e); }) : ($('rMeta').textContent = 'Nenhum RREO encontrado.', null);
+    var E = filtra(ents, 'RGF', 'E').slice(-10), L = filtra(ents, 'RGF', 'L').slice(-10);
+    if (!E.length) throw new Error('Não encontrei RGF da Prefeitura de ' + nomeUF(ente) + ' nos últimos quatro anos.');
+    $('pMeta').innerHTML = 'Lendo ' + (E.length + L.length) + ' relatórios de gestão fiscal de <b>' + esc(nomeUF(ente)) + '</b>…';
+    var fns = E.concat(L).map(function(e){ return function(){ return rgf(ente.id, e).then(function(it){ return parseRGF(it, e); }); }; });
+    return pool(fns, 4).then(function(rs){
+      rs.forEach(function(r){ if (r && !r.erro && r.dtpPct != null) (r.poder === 'E' ? S.E : S.L).push(r); });
+      if (!S.E.length) throw new Error('Os RGF foram entregues, mas ainda não aparecem na base de dados abertos.');
+      renderPainel(); renderMensal();
+      return Promise.all([pR, pDca]);
+    });
+  }).catch(erro);
+}
+function msg(html, cls){ $('msg').innerHTML = html ? '<div class="' + (cls || 'err') + '">' + html + '</div>' : ''; }
+function erro(e){
+  if (e && e.message === 'SEM_PROXY'){
+    msg('Configure o endereço do proxy em <b>Configurações</b> para o app buscar os dados do Siconfi.', 'info');
+    abrir('config');
+  } else msg(esc(e && e.message ? e.message : e) + (e instanceof TypeError ? ' Verifique a conexão e a URL do proxy.' : ''));
+  $('pMeta').textContent = '';
+}
+function camaraDe(r){ return S.L.find(function(l){ return l.ano === r.ano && l.p === r.p && l.per === r.per; }) || null; }
+
+/* ================= Painel RGF ================= */
+var charts = {};
+function mkChart(id, cfg){ if (charts[id]) charts[id].destroy(); if (!window.Chart) return; charts[id] = new Chart($(id), cfg); }
+function kpi(lbl, v, lim, comPrud, extra){
+  var st = statusDe(v, lim, comPrud), w = v == null ? 0 : Math.max(0, Math.min(100, v / (lim*1.15) * 100));
+  return '<div class="card kpi"><div class="lbl">' + esc(lbl) + '</div><div class="val">' + pct(v) + '</div>' +
+    '<div class="bar"><i style="width:' + w + '%;background:' + COR[st.c] + '"></i><s style="left:' + (100/1.15) + '%"></s></div>' +
+    '<span class="chip s-' + st.c + '">' + st.t + '</span><div class="lim" style="margin-top:6px">' + extra + '</div></div>';
+}
+function kpiS(lbl, val, extra){ return '<div class="card kpi"><div class="lbl">' + esc(lbl) + '</div><div class="val">' + val + '</div><div class="lim">' + (extra || '') + '</div></div>'; }
+function renderPainel(){
+  var u = S.E[S.E.length - 1], cam = camaraDe(u), e = S.ente;
+  $('pMeta').innerHTML = '<b>' + esc(nomeUF(e)) + '</b> · ' + nf0.format(e.pop) + ' hab. · ' + esc(u.tipo) + ' do <b>' + esc(u.label) + '</b> · RCL ajustada ' + mi(u.rclAj);
+  var h = '', exc = u.dtp - u.rclAj * u.limMax * 0.95 / 100;
+  h += kpi('Pessoal · Executivo', u.dtpPct, u.limMax, true, 'Limite ' + pct(u.limMax) + ' · prudencial ' + pct(u.limMax*0.95) + '<br>' + (exc > 0 ? 'Excede o prudencial em ' + mi(exc) : 'Folga até o prudencial: ' + mi(-exc)));
+  h += kpi('Pessoal · Câmara', cam ? cam.dtpPct : null, 6, true, cam ? 'Limite 6,00% · ' + mi(cam.dtp) : 'Câmara sem RGF neste período');
+  h += kpi('Pessoal · Município', cam ? u.dtpPct + cam.dtpPct : null, 60, false, 'Executivo + Câmara · limite 60,00%');
+  h += kpi('Dívida consolidada líquida', u.dclPct, 120, false, u.dcl == null ? 'Sem dado no RGF' : (u.dcl < 0 ? 'Disponibilidades superam a dívida' : 'DCL ' + mi(u.dcl) + ' · limite 120%'));
+  if (u.opcPct != null) h += kpi('Operações de crédito', u.opcPct, 16, false, 'Limite 16% da RCL ajustada');
+  $('kpis').innerHTML = h;
+  var lbl = S.E.map(function(r){ return r.short; }), lim = u.limMax;
+  function linha(v, nome, cor){ return {label:nome, data:lbl.map(function(){ return v; }), borderColor:cor, borderDash:[5,4], borderWidth:1.5, pointRadius:0, fill:false}; }
+  mkChart('chSerie', {type:'line', data:{labels:lbl, datasets:[
+    {label:'DTP Executivo', data:S.E.map(function(r){ return r.dtpPct; }), borderColor:'#1f5fa8', backgroundColor:'#1f5fa8', borderWidth:2.5, tension:.2},
+    linha(lim, 'Máximo', COR.exc), linha(lim*.95, 'Prudencial', COR.prud), linha(lim*.9, 'Alerta', COR.alerta)]},
+    options:{maintainAspectRatio:false, plugins:{legend:{position:'bottom'}, tooltip:{callbacks:{label:function(c){ return c.dataset.label + ': ' + pct(c.parsed.y); }}}}, scales:{y:{ticks:{callback:function(v){ return v + '%'; }}}}}});
+  $('tSerie').innerHTML = tabelaSerie();
+  $('obs').innerHTML = observacoes().map(function(o){ return '<li>' + o + '</li>'; }).join('');
+}
+function tabelaSerie(){
+  var rows = S.E.slice().reverse().map(function(r){ var c = camaraDe(r);
+    return '<tr><td>' + r.label + '</td><td><b>' + pct(r.dtpPct) + '</b></td><td>' + mi(r.dtp) + '</td><td>' + mi(r.rclAj) + '</td><td>' + mi(r.bruta) + '</td><td>' + mi(r.naoComp) + '</td><td>' + pct(r.dclPct) + '</td><td>' + (c ? pct(c.dtpPct) : '—') + '</td></tr>'; });
+  return '<table><thead><tr><th>Período</th><th>DTP % RCL aj.</th><th>DTP</th><th>RCL ajustada</th><th>Despesa bruta</th><th>Não computadas</th><th>DCL % RCL aj.</th><th>Câmara %</th></tr></thead><tbody>' + rows.join('') + '</tbody></table>';
+}
+function observacoes(){
+  var E = S.E, u = E[E.length - 1], ant = E[E.length - 2], out = [];
+  var st = statusDe(u.dtpPct, u.limMax, true);
+  out.push('No ' + u.label + ', a despesa com pessoal do Executivo está em <b>' + pct(u.dtpPct) + '</b> da RCL ajustada: ' + st.t.toLowerCase() + '. Folga até o máximo: ' + mi(u.rclAj*u.limMax/100 - u.dtp) + '.');
+  if (ant) out.push('Variação em relação ao ' + ant.label + ': <b>' + pp(u.dtpPct - ant.dtpPct) + '</b>');
+  for (var i = 1; i < E.length; i++){
+    var a = E[i-1], b = E[i], d = b.dtpPct - a.dtpPct;
+    if (Math.abs(d) >= 3 && a.naoComp != null && b.naoComp != null){
+      var dn = b.naoComp - a.naoComp, db = varp(b.bruta, a.bruta);
+      if (Math.abs(dn) > 0.01 * b.rclAj && Math.sign(dn) === -Math.sign(d))
+        out.push('<b>Possível mudança de critério</b> entre ' + a.short + ' e ' + b.short + ': o índice variou ' + pp(d) + ', mas a despesa bruta variou só ' + pct1(db) + '. As despesas não computadas passaram de ' + mi(a.naoComp) + ' para ' + mi(b.naoComp) + ((a.inatVinc || b.inatVinc) ? ' (inativos com recursos vinculados: ' + mi(a.inatVinc || 0) + ' → ' + mi(b.inatVinc || 0) + ')' : '') + '.');
+      else out.push('Salto de ' + pp(d) + ' entre ' + a.short + ' e ' + b.short + '.');
+    }
+  }
+  var aa = E.find(function(r){ return r.ano === u.ano - 1 && r.p === u.p && r.per === u.per; });
+  if (aa && aa.bruta && u.bruta && aa.rcl && u.rcl){
+    var gb = varp(u.bruta, aa.bruta), gr = varp(u.rcl, aa.rcl);
+    out.push('Em 12 meses, a despesa bruta com pessoal cresceu <b>' + pct1(gb) + '</b> e a RCL <b>' + pct1(gr) + '</b>' + (gb > gr + 1 ? ': a despesa cresce mais rápido que a receita.' : '.'));
+  }
+  if (u.mensal.length){
+    var ult = u.mensal[u.mensal.length - 1], med = mediana(u.mensal.map(function(m){ return m.bruta; }));
+    if (ult.bruta > med * 1.1) out.push('O último mês (' + ult.mes + ') ficou ' + pct1((ult.bruta/med - 1)*100) + ' acima da mediana mensal: vale verificar reajustes, retroativos ou pagamentos extraordinários.');
+  }
+  E.forEach(function(r){ if (r.rpnp != null && r.rpnp < -1) out.push('Restos a pagar não processados negativos no ' + r.short + ' (' + brl(r.rpnp) + '): possível ajuste de registro.'); });
+  if (u.dclPct != null) out.push(u.dcl < 0 ? 'Dívida consolidada líquida negativa: as disponibilidades superam a dívida.' : 'Dívida consolidada líquida em ' + pct(u.dclPct) + ' da RCL ajustada (limite 120%).');
+  return out;
+}
+function mediana(a){ var s = a.filter(function(x){ return x != null && !isNaN(x); }).sort(function(x,y){ return x-y; }), n = s.length; return n ? (n % 2 ? s[(n-1)/2] : (s[n/2-1] + s[n/2]) / 2) : null; }
+
+/* ================= Pessoal mensal ================= */
+function renderMensal(){
+  var u = S.E[S.E.length - 1], M = u.mensal;
+  if (!M.length){ $('mMeta').textContent = 'O ' + u.tipo + ' deste município não traz a abertura mês a mês.'; $('tMes').innerHTML = ''; if (charts.chMes) charts.chMes.destroy(); return; }
+  $('mMeta').innerHTML = '<b>' + esc(nomeUF(S.ente)) + '</b> · Executivo · janela de 12 meses do ' + esc(u.label) + ' (' + M[0].mes + ' a ' + M[M.length-1].mes + ')';
+  mkChart('chMes', {type:'bar', data:{labels:M.map(function(m){ return m.mes; }), datasets:[
+    {label:'Pessoal ativo', data:M.map(function(m){ return (m.ativo || 0)/1e6; }), backgroundColor:'#1f5fa8', stack:'a'},
+    {label:'Inativos e pensionistas', data:M.map(function(m){ return (m.inativo || 0)/1e6; }), backgroundColor:'#8fb3de', stack:'a'}]},
+    options:{maintainAspectRatio:false, plugins:{legend:{position:'bottom'}, tooltip:{callbacks:{label:function(c){ return c.dataset.label + ': R$ ' + nf1.format(c.parsed.y) + ' mi'; }}}}, scales:{x:{stacked:true}, y:{stacked:true}}}});
+  var med = mediana(M.map(function(m){ return m.bruta; })), t = {bruta:0, ativo:0, inativo:0, naoComp:0, liquida:0};
+  var rows = M.map(function(m){ Object.keys(t).forEach(function(k){ t[k] += m[k] || 0; });
+    return '<tr' + (m.bruta > med*1.25 ? ' class="pico"' : '') + '><td>' + m.mes + '</td><td>' + brl(m.bruta) + '</td><td>' + brl(m.ativo) + '</td><td>' + brl(m.inativo) + '</td><td>' + brl(m.naoComp) + '</td><td>' + brl(m.liquida) + '</td></tr>'; });
+  rows.push('<tr class="tot"><td>Total 12 meses</td><td>' + brl(t.bruta) + '</td><td>' + brl(t.ativo) + '</td><td>' + brl(t.inativo) + '</td><td>' + brl(t.naoComp) + '</td><td>' + brl(t.liquida) + '</td></tr>');
+  $('tMes').innerHTML = '<table><thead><tr><th>Mês</th><th>Despesa bruta</th><th>Ativos</th><th>Inativos e pensionistas</th><th>Não computadas</th><th>Despesa líquida</th></tr></thead><tbody>' + rows.join('') + '</tbody></table>';
+}
+
+/* ================= RREO ================= */
+function renderRREO(){
+  var r = S.rreo; if (!r) return;
+  var esperado = r.p / 6 * 100;
+  $('rMeta').innerHTML = '<b>' + esc(nomeUF(S.ente)) + '</b> · RREO do <b>' + r.label + '</b> (jan a ' + MESES[2*r.p-1] + ') · valores acumulados no ano. Referência linear para o período: ' + pct1(esperado) + ' do ano.';
+  var h = '';
+  h += kpiS('Receita realizada', mi(r.rec), pct1(div(r.rec, r.prev)*100) + ' da previsão atualizada (' + mi(r.prev) + ')');
+  h += kpiS('Despesa empenhada', mi(r.emp), pct1(div(r.emp, r.dot)*100) + ' da dotação atualizada (' + mi(r.dot) + ')');
+  h += kpiS('Despesa liquidada', mi(r.liq), pct1(div(r.liq, r.emp)*100) + ' do empenhado');
+  h += kpiS('Despesa paga', mi(r.pag), pct1(div(r.pag, r.liq)*100) + ' do liquidado');
+  h += kpiS((r.sup != null && r.sup < 0) ? 'Déficit orçamentário' : 'Superávit orçamentário', mi(r.sup), 'Receita realizada − despesa liquidada (critério do RREO)');
+  if (r.rec != null && r.emp != null && r.emp > r.rec) h += kpiS('Empenho acima da receita', mi(r.emp - r.rec), 'Despesa empenhada supera a receita realizada no ano');
+  h += kpiS('Resultado primário', mi(r.prim), 'Acima da linha, sem RPPS');
+  h += kpiS('Resultado nominal', mi(r.nom), 'Abaixo da linha, sem RPPS');
+  if (r.dot != null && r.dotIni != null) h += kpiS('Créditos adicionais', mi(r.dot - r.dotIni), pct1(varp(r.dot, r.dotIni)) + ' sobre a dotação inicial');
+  $('rKpis').innerHTML = h;
+  mkChart('chRcl', {type:'bar', data:{labels:r.rclMes.map(function(m){ return m.mes; }), datasets:[{label:'RCL', data:r.rclMes.map(function(m){ return m.v/1e6; }), backgroundColor:'#1f5fa8'}]},
+    options:{maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{callbacks:{label:function(c){ return 'R$ ' + nf1.format(c.parsed.y) + ' mi'; }}}}}});
+  var rcb = (r.receitas.find(function(x){ return /bruta/.test(x.nome); }) || {}).v;
+  $('tRec').innerHTML = '<table><thead><tr><th>Receita (últimos 12 meses)</th><th>Valor</th><th>% da receita corrente</th></tr></thead><tbody>' + r.receitas.map(function(x){
+    var tot = /bruta|Dedu|l.quida/i.test(x.nome);
+    return '<tr' + (tot ? ' class="tot"' : '') + '><td>' + esc(x.nome) + '</td><td>' + mi(x.v) + '</td><td>' + (tot ? '' : pct1(div(x.v, rcb)*100)) + '</td></tr>'; }).join('') + '</tbody></table>';
+  function rp(n, o){ return '<tr><td>' + n + '</td><td>' + mi(o.insc) + '</td><td>' + mi(o.pag) + '</td><td>' + mi(o.saldo) + '</td><td>' + pct1(div(o.pag, o.insc)*100) + '</td></tr>'; }
+  $('tRP').innerHTML = '<table><thead><tr><th>Restos a pagar</th><th>Inscritos</th><th>Pagos até o bimestre</th><th>Saldo a pagar</th><th>% pago</th></tr></thead><tbody>' + rp('Processados', r.rpp) + rp('Não processados', r.rpn) + '</tbody></table>';
+}
+
+/* ================= DCA ================= */
+var DCA_LINHAS = [
+  ['s','Receitas (brutas realizadas)'],
+  ['recTotal','Receita total',mi],['recCorr','Receitas correntes',mi],['trib','Impostos, taxas e contribuições de melhoria',mi],['iptu','· IPTU',mi],['iss','· ISS',mi],['itbi','· ITBI',mi],['irrf','· IRRF',mi],['transf','Transferências correntes',mi],['roy','· Royalties e compensações financeiras',mi],['recCap','Receitas de capital',mi],
+  ['s','Despesas (empenhadas)'],
+  ['despTotal','Despesa total',mi],['pessoal','Pessoal e encargos sociais',mi],['juros','Juros e encargos da dívida',mi],['outrasCorr','Outras despesas correntes',mi],['invest','Investimentos',mi],['amort','Amortização da dívida',mi],
+  ['s','Balanço patrimonial (31/12)'],
+  ['ativo','Ativo total',mi],['ac','Ativo circulante',mi],['caixa','· Caixa e equivalentes',mi],['anc','Ativo não circulante',mi],['pc','Passivo circulante',mi],['pnc','Passivo não circulante',mi],['pl','Patrimônio líquido',mi],
+  ['s','Indicadores'],
+  ['xTribPct','Receita tributária própria / receita corrente',pct1],['xRoyPct','Royalties / receita corrente',pct1],['xPesDesp','Pessoal / despesa total',pct1],['xInvDesp','Investimentos / despesa total',pct1],['xResult','Resultado orçamentário (receita líquida − despesa empenhada)',mi],['xRcPc','Receita corrente per capita',rs0],['liqCorr','Liquidez corrente (AC/PC)',num2],['liqImed','Liquidez imediata (caixa/PC)',num2],['endiv','Endividamento geral (passivo/ativo)',pct1]
+];
+function dcaInd(d, pop){
+  if (!d) return d;
+  d.xTribPct = div(d.trib, d.recCorr) * 100;
+  d.xRoyPct = div(d.roy || 0, d.recCorr) * 100;
+  d.xPesDesp = div(d.pessoal, d.despTotal) * 100;
+  d.xInvDesp = div(d.invest, d.despTotal) * 100;
+  d.xResult = (d.recTotal != null && d.despTotal != null) ? d.recTotal - (d.dedFundeb || 0) - (d.dedOutras || 0) - d.despTotal : null;
+  d.xRcPc = pop ? div(d.recCorr, pop) : null;
+  d.xSaudePc = pop ? div(d.saude, pop) : null;
+  d.xEducPc = pop ? div(d.educ, pop) : null;
+  return d;
+}
+function varTxt(key, fmt, a, b){
+  if (a == null || b == null) return '—';
+  var d = a - b, s = d > 0 ? '+' : '';
+  if ((fmt === mi || fmt === rs0) && key !== 'xResult' && key !== 'pl'){ var v = varp(a, b); return v == null ? '—' : (v > 0 ? '+' : '') + pct1(v); }
+  if (fmt === pct1) return s + nf1.format(d) + ' p.p.';
+  if (fmt === num2) return s + nf2.format(d);
+  return s + mi(d);
+}
+function renderDCA(){
+  var D = S.dca, pop = S.ente.pop;
+  if (!D.length){ $('dMeta').textContent = 'Nenhum balanço anual (DCA) encontrado nos últimos três exercícios.'; return; }
+  D.forEach(function(d){ dcaInd(d, pop); });
+  var u = D[D.length-1];
+  $('dMeta').innerHTML = '<b>' + esc(nomeUF(S.ente)) + '</b> · Declaração de Contas Anuais, exercícios ' + D.map(function(d){ return d.ano; }).join(', ');
+  var head = '<tr><th>Item</th>' + D.map(function(d){ return '<th>' + d.ano + '</th>'; }).join('') + (D.length > 1 ? '<th>Var. ' + D[D.length-2].ano + '→' + u.ano + '</th>' : '') + '</tr>';
+  var body = DCA_LINHAS.map(function(l){
+    if (l[0] === 's') return '<tr class="sec"><td colspan="' + (D.length + 2) + '">' + l[1] + '</td></tr>';
+    if (D.every(function(d){ return d[l[0]] == null; })) return '';
+    var vtxt = D.length > 1 ? varTxt(l[0], l[2], u[l[0]], D[D.length-2][l[0]]) : '';
+    return '<tr><td>' + l[1] + '</td>' + D.map(function(d){ return '<td>' + l[2](d[l[0]]) + '</td>'; }).join('') + (D.length > 1 ? '<td>' + vtxt + '</td>' : '') + '</tr>';
+  }).join('');
+  $('tDca').innerHTML = '<table><thead>' + head + '</thead><tbody>' + body + '</tbody></table>';
+  var F = u.funcoes.slice(0, 12);
+  $('funBox').style.height = Math.max(240, F.length * 28 + 60) + 'px';
+  mkChart('chFun', {type:'bar', data:{labels:F.map(function(f){ return f.nome; }), datasets:[{label:'Empenhado ' + u.ano, data:F.map(function(f){ return f.v/1e6; }), backgroundColor:'#1f5fa8'}]},
+    options:{indexAxis:'y', maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{callbacks:{label:function(c){ return 'R$ ' + nf1.format(c.parsed.x) + ' mi'; }}}}}});
+  var prev = D.length > 1 ? D[D.length-2] : null;
+  $('tFun').innerHTML = '<table><thead><tr><th>Função</th><th>' + u.ano + '</th><th>Per capita</th><th>% do total</th>' + (prev ? '<th>Var. ' + prev.ano + '</th>' : '') + '</tr></thead><tbody>' + u.funcoes.map(function(f){
+    var fp = prev ? (prev.funcoes.find(function(x){ return x.cod === f.cod; }) || {}).v : null, v = varp(f.v, fp);
+    return '<tr><td>' + f.cod + ' · ' + esc(f.nome) + '</td><td>' + mi(f.v) + '</td><td>' + rs0(f.v/pop) + '</td><td>' + pct1(div(f.v, u.despTotal)*100) + '</td>' + (prev ? '<td class="' + vcls(v) + '">' + (v == null ? '—' : (v > 0 ? '+' : '') + pct1(v)) + '</td>' : '') + '</tr>'; }).join('') + '</tbody></table>';
+}
+
+/* ================= MSC ================= */
+var PCASP = {'1':'Ativo','11':'Ativo circulante','111':'Caixa e equivalentes de caixa','112':'Créditos a curto prazo','113':'Demais créditos e valores a curto prazo','114':'Investimentos e aplicações temporárias a curto prazo','115':'Estoques','119':'VPD pagas antecipadamente','12':'Ativo não circulante','121':'Ativo realizável a longo prazo','122':'Investimentos','123':'Imobilizado','124':'Intangível','2':'Passivo e patrimônio líquido','21':'Passivo circulante','211':'Obrigações trabalhistas, previdenciárias e assistenciais a curto prazo','212':'Empréstimos e financiamentos a curto prazo','213':'Fornecedores e contas a pagar a curto prazo','214':'Obrigações fiscais a curto prazo','215':'Obrigações de repartição a outros entes','217':'Provisões a curto prazo','218':'Demais obrigações a curto prazo','22':'Passivo não circulante','221':'Obrigações trabalhistas, previdenciárias e assistenciais a longo prazo','222':'Empréstimos e financiamentos a longo prazo','223':'Fornecedores e contas a pagar a longo prazo','224':'Obrigações fiscais a longo prazo','227':'Provisões a longo prazo','228':'Demais obrigações a longo prazo','23':'Patrimônio líquido','3':'Variações patrimoniais diminutivas','31':'Pessoal e encargos','32':'Benefícios previdenciários e assistenciais','33':'Uso de bens, serviços e consumo de capital fixo','34':'VPD financeiras','35':'Transferências e delegações concedidas','36':'Desvalorização e perda de ativos e incorporação de passivos','37':'Tributárias','38':'Custo das mercadorias e produtos vendidos e dos serviços prestados','39':'Outras VPD','4':'Variações patrimoniais aumentativas','41':'Impostos, taxas e contribuições de melhoria','42':'Contribuições','43':'Exploração e venda de bens, serviços e direitos','44':'VPA financeiras','45':'Transferências e delegações recebidas','46':'Valorização e ganhos com ativos e desincorporação de passivos','49':'Outras VPA'};
+var FONTES = {'500':'Recursos não vinculados de impostos','501':'Outros recursos não vinculados','540':'Transferências do FUNDEB (impostos e transferências de impostos)','550':'Salário-educação','600':'SUS · União · manutenção das ações e serviços públicos de saúde','601':'SUS · União · estruturação da rede de serviços'};
+var NIVEL_DIG = [1,2,3,4,5,7,9];
+function dotted(code){ var c = (code + '000000000').slice(0,9); return c[0]+'.'+c[1]+'.'+c[2]+'.'+c[3]+'.'+c[4]+'.'+c.slice(5,7)+'.'+c.slice(7,9); }
+function nomeConta(pref){
+  var D = S.dca.length ? S.dca[S.dca.length-1].dict : {};
+  return D[dotted(pref)] || PCASP[pref] || '';
+}
+function preencheMsc(){
+  var M = filtra(S.ents, 'MSC', 'E'), anos = [];
+  M.forEach(function(m){ if (anos.indexOf(m.ano) < 0) anos.push(m.ano); });
+  anos.sort(function(a,b){ return b - a; });
+  $('mAno').innerHTML = anos.map(function(a){ return '<option>' + a + '</option>'; }).join('');
+  mesesMsc();
+}
+function mesesMsc(){
+  var a = +$('mAno').value, M = filtra(S.ents, 'MSC', 'E').filter(function(m){ return m.ano === a; }).map(function(m){ return m.p; }).sort(function(x,y){ return y - x; });
+  $('mMes').innerHTML = M.map(function(m){ return '<option value="' + m + '">' + MESES_L[m-1] + '</option>'; }).join('');
+}
+function mscGet(ano, mes, classe){
+  return api('msc_patrimonial',{id_ente:S.ente.id, an_referencia:ano, me_referencia:mes, co_tipo_matriz:'MSCC', classe_conta:classe, id_tv:'ending_balance'});
+}
+function consultarMsc(){
+  if (!S.ente) return;
+  var ano = +$('mAno').value, mes = +$('mMes').value, classe = +$('mClasse').value, cmp = $('mCmp').value;
+  if (!ano || !mes){ $('mscMeta').textContent = 'Sem MSC disponível para este município.'; return; }
+  var ca = ano, cm = mes;
+  if (cmp === 'ant'){ cm = mes - 1; if (cm < 1){ cm = 12; ca = ano - 1; } }
+  else if (cmp === 'dez'){ ca = ano - 1; cm = 12; }
+  else { ca = ano - 1; }
+  $('mscMeta').textContent = 'Consultando a MSC…'; $('bMsc').disabled = true;
+  Promise.all([mscGet(ano, mes, classe), mscGet(ca, cm, classe).catch(function(){ return []; })]).then(function(rs){
+    S.msc = {ano:ano, mes:mes, classe:classe, ca:ca, cm:cm, atual:rs[0], base:rs[1], pref:String(classe), nivel:2};
+    $('mscMeta').innerHTML = '<b>' + esc(nomeUF(S.ente)) + '</b> · MSC de ' + MESES_L[mes-1] + '/' + ano + ' comparada com ' + MESES_L[cm-1] + '/' + ca + (rs[1].length ? '' : ' (sem dados na base)') + ' · ' + rs[0].length + ' lançamentos de saldo';
+    renderMsc(); renderFontes();
+  }).catch(function(e){ $('mscMeta').textContent = 'Falha ao ler a MSC: ' + (e.message || e); }).then(function(){ $('bMsc').disabled = false; });
+}
+function sinal(x, classe){ var dev = (classe === 1 || classe === 3); return ((x.natureza_conta === 'D') === dev ? 1 : -1) * (+x.valor); }
+function agrega(rows, classe, pref, dig){
+  var poder = $('mPoder').value, out = {};
+  rows.forEach(function(x){ var c = String(x.conta_contabil);
+    if (c.indexOf(pref) !== 0) return;
+    if (poder && String(x.poder_orgao).indexOf(poder) !== 0) return;
+    var k = c.slice(0, dig); out[k] = (out[k] || 0) + sinal(x, classe); });
+  return out;
+}
+function renderMsc(){
+  var m = S.msc; if (!m) return;
+  var dig = NIVEL_DIG[Math.min(m.nivel, NIVEL_DIG.length) - 1];
+  var A = agrega(m.atual, m.classe, m.pref, dig), B = agrega(m.base, m.classe, m.pref, dig);
+  var keys = Object.keys(A).concat(Object.keys(B)).filter(function(k, i, a){ return a.indexOf(k) === i; }).sort();
+  var tA = 0, tB = 0;
+  var rows = keys.map(function(k){ var a = A[k] || 0, b = B[k] || 0, v = varp(a, b); tA += a; tB += b;
+    var podeAbrir = m.nivel < NIVEL_DIG.length;
+    return '<tr' + (podeAbrir ? ' class="click" data-k="' + k + '"' : '') + '><td>' + dotted(k).slice(0, dotted(k).length) + '</td><td class="txt">' + esc(nomeConta(k)) + '</td><td>' + brl(a) + '</td><td>' + brl(b) + '</td><td>' + brl(a - b) + '</td><td class="' + vcls(v) + '">' + (v == null ? '—' : pct1(v)) + '</td></tr>'; });
+  rows.push('<tr class="tot"><td></td><td class="txt">Total</td><td>' + brl(tA) + '</td><td>' + brl(tB) + '</td><td>' + brl(tA - tB) + '</td><td>' + pct1(varp(tA, tB)) + '</td></tr>');
+  $('tMsc').innerHTML = '<table><thead><tr><th>Conta</th><th>Descrição</th><th>' + MESES[m.mes-1] + '/' + m.ano + '</th><th>' + MESES[m.cm-1] + '/' + m.ca + '</th><th>Variação</th><th>%</th></tr></thead><tbody>' + rows.join('') + '</tbody></table>';
+  var cr = [], p = m.pref;
+  cr.push('<a data-p="' + m.classe + '">Classe ' + m.classe + '</a>');
+  for (var i = 1; i < NIVEL_DIG.length; i++){ var d = NIVEL_DIG[i]; if (p.length >= d && d > 1) cr.push('<a data-p="' + p.slice(0, d) + '">' + p.slice(0, d) + ' ' + esc(nomeConta(p.slice(0, d))) + '</a>'); }
+  $('mscCrumb').innerHTML = cr.join(' › ');
+  S.msc.tabela = keys.map(function(k){ return [dotted(k), nomeConta(k), A[k] || 0, B[k] || 0]; });
+}
+function abreConta(k){ var m = S.msc; m.pref = k; m.nivel = NIVEL_DIG.indexOf(k.length) + 2; if (m.nivel < 2) m.nivel = 2; renderMsc(); }
+function renderFontes(){
+  var m = S.msc;
+  if (m.classe !== 1){ $('tFonte').innerHTML = '<p class="note">Disponível para a classe 1 (Ativo).</p>'; return; }
+  var poder = $('mPoder').value;
+  function porFonte(rows){ var o = {}; rows.forEach(function(x){ var c = String(x.conta_contabil); if (c.indexOf('111') !== 0) return; if (poder && String(x.poder_orgao).indexOf(poder) !== 0) return; var f = x.fonte_recursos || 's/ fonte'; o[f] = (o[f] || 0) + sinal(x, 1); }); return o; }
+  var A = porFonte(m.atual), B = porFonte(m.base), tot = 0;
+  Object.keys(A).forEach(function(k){ tot += A[k]; });
+  var ks = Object.keys(A).sort(function(a,b){ return A[b] - A[a]; });
+  $('tFonte').innerHTML = '<table><thead><tr><th>Fonte</th><th>Saldo</th><th>%</th><th>Anterior</th></tr></thead><tbody>' + ks.map(function(k){
+    var nome = FONTES[String(k).slice(-3)] ? ' · ' + FONTES[String(k).slice(-3)] : '';
+    return '<tr><td>' + esc(k) + esc(nome) + '</td><td>' + mi(A[k]) + '</td><td>' + pct1(A[k]/tot*100) + '</td><td>' + mi(B[k]) + '</td></tr>'; }).join('') +
+    '<tr class="tot"><td>Total</td><td>' + mi(tot) + '</td><td></td><td></td></tr></tbody></table><p class="note">Primeiro dígito: 1 = recursos do exercício, 2 = de exercícios anteriores. Os três últimos identificam a fonte (padrão STN).</p>';
+}
+
+/* ================= Comparação ================= */
+var IND = [
+  {k:'pessoal', g:'RGF', n:'Pessoal do Executivo (% da RCL ajustada)', f:pct, dir:-1, get:function(x){ return x.rgf && x.rgf.dtpPct; }},
+  {k:'dcl', g:'RGF', n:'Dívida consolidada líquida (% da RCL ajustada)', f:pct, dir:-1, get:function(x){ return x.rgf && x.rgf.dclPct; }},
+  {k:'realRec', g:'RREO', n:'Receita realizada / previsão atualizada', f:pct1, dir:0, get:function(x){ return x.rreo && div(x.rreo.rec, x.rreo.prev)*100; }},
+  {k:'execDesp', g:'RREO', n:'Despesa empenhada / dotação atualizada', f:pct1, dir:0, get:function(x){ return x.rreo && div(x.rreo.emp, x.rreo.dot)*100; }},
+  {k:'primPc', g:'RREO', n:'Resultado primário no ano (R$ por habitante)', f:rs0, dir:1, get:function(x){ return x.rreo && x.pop ? div(x.rreo.prim, x.pop) : null; }},
+  {k:'rcPc', g:'DCA', n:'Receita corrente per capita (R$)', f:rs0, dir:1, get:function(x){ return x.dca && x.dca.xRcPc; }},
+  {k:'trib', g:'DCA', n:'Receita tributária própria (% da receita corrente)', f:pct1, dir:1, get:function(x){ return x.dca && x.dca.xTribPct; }},
+  {k:'roy', g:'DCA', n:'Royalties e compensações (% da receita corrente)', f:pct1, dir:0, get:function(x){ return x.dca && x.dca.xRoyPct; }},
+  {k:'pesDesp', g:'DCA', n:'Pessoal (% da despesa total)', f:pct1, dir:-1, get:function(x){ return x.dca && x.dca.xPesDesp; }},
+  {k:'inv', g:'DCA', n:'Investimentos (% da despesa total)', f:pct1, dir:1, get:function(x){ return x.dca && x.dca.xInvDesp; }},
+  {k:'saude', g:'DCA', n:'Despesa com saúde per capita (R$)', f:rs0, dir:0, get:function(x){ return x.dca && x.dca.xSaudePc; }},
+  {k:'educ', g:'DCA', n:'Despesa com educação per capita (R$)', f:rs0, dir:0, get:function(x){ return x.dca && x.dca.xEducPc; }},
+  {k:'liq', g:'DCA', n:'Liquidez corrente (AC/PC)', f:num2, dir:1, get:function(x){ return x.dca && x.dca.liqCorr; }},
+  {k:'endiv', g:'DCA', n:'Endividamento geral (passivo/ativo)', f:pct1, dir:-1, get:function(x){ return x.dca && x.dca.endiv; }}
+];
+function compIds(){ try { var v = JSON.parse(LS.get('siconfi_comp','null')); if (v && v.length) return v; } catch(e){} return PRESET.slice(); }
+var COMP = [];
+function renderChips(){
+  $('chips').innerHTML = COMP.map(function(id){ var e = BYID[id]; return '<span>' + esc(e ? nomeUF(e) : id) + '<b data-rm="' + id + '" title="Remover">×</b></span>'; }).join('');
+  LS.set('siconfi_comp', JSON.stringify(COMP));
+}
+function dadosEnte(id){
+  var Y = new Date().getFullYear(), pop = BYID[id] ? BYID[id].pop : null;
+  return entregas(id, [Y-1, Y]).then(function(ents){
+    var E = filtra(ents, 'RGF', 'E'), R = filtra(ents, 'RREO', 'E');
+    function tentaRGF(i){ if (i < 0) return Promise.resolve(null); return rgf(id, E[i]).then(function(it){ var r = parseRGF(it, E[i]); return r.dtpPct != null ? r : tentaRGF(i - 1); }); }
+    function tentaRREO(i){ if (i < 0) return Promise.resolve(null); return rreo(id, R[i], 'RREO-Anexo 14').then(function(it){ var r = parseRREO(it, R[i]); return r.rec != null ? r : tentaRREO(i - 1); }); }
+    function tentaDCA(a, n){ return dcaAno(id, a).then(function(d){ return d || (n ? tentaDCA(a - 1, n - 1) : null); }); }
+    return Promise.all([tentaRGF(E.length - 1).catch(function(){ return null; }), tentaRREO(R.length - 1).catch(function(){ return null; }), tentaDCA(Y - 1, 1).catch(function(){ return null; })]);
+  }).then(function(rs){ return {id:id, pop:pop, rgf:rs[0], rreo:rs[1], dca:dcaInd(rs[2], pop)}; });
+}
+function comparar(){
+  if (S.ente && COMP.indexOf(S.ente.id) < 0){ COMP.unshift(S.ente.id); renderChips(); }
+  if (!COMP.length) return;
+  $('bComparar').disabled = true;
+  $('tComp').innerHTML = '<p class="note">Buscando ' + COMP.length + ' municípios (RGF, RREO e DCA)…</p>';
+  pool(COMP.map(function(id){ return function(){ return dadosEnte(id); }; }), 3).then(function(res){
+    S.comp = res.map(function(x, i){ return x && !x.erro ? x : {id:COMP[i]}; });
+    renderComp();
+  }).catch(erro).then(function(){ $('bComparar').disabled = false; });
+}
+function ranking(ind){
+  var L = S.comp.map(function(x){ return {id:x.id, v:ind.get(x)}; }).filter(function(x){ return x.v != null && !isNaN(x.v); });
+  L.sort(function(a,b){ return b.v - a.v; });
+  return L;
+}
+function textoPosicao(ind){
+  var L = ranking(ind), me = S.ente ? S.ente.id : null, i = L.findIndex(function(x){ return x.id === me; });
+  if (i < 0 || L.length < 2) return null;
+  var med = mediana(L.map(function(x){ return x.v; })), v = L[i].v;
+  var lado = v > med ? 'acima da mediana' : (v < med ? 'abaixo da mediana' : 'igual à mediana');
+  var qual = ind.dir === 0 ? '' : ((ind.dir > 0) === (v > med) ? ' (favorável)' : (v === med ? '' : ' (desfavorável)'));
+  return '<b>' + esc(ind.n) + '</b>: ' + ind.f(v) + ' · ' + (i + 1) + 'º de ' + L.length + ' (do maior para o menor) · ' + lado + ' do grupo (' + ind.f(med) + ')' + qual + '.';
+}
+function renderComp(){
+  var sel = $('selInd');
+  if (!sel.options.length) sel.innerHTML = IND.map(function(d, i){ return '<option value="' + i + '">' + d.g + ' · ' + esc(d.n) + '</option>'; }).join('');
+  graficoComp();
+  var me = S.ente ? S.ente.id : null;
+  $('cmpTexto').innerHTML = IND.map(textoPosicao).filter(Boolean).map(function(t){ return '<li>' + t + '</li>'; }).join('') || '<li class="note">Carregue um município e rode a comparação.</li>';
+  var head = '<tr><th>Município</th><th>População</th>' + IND.map(function(d){ return '<th title="' + esc(d.n) + '">' + esc(curto(d)) + '</th>'; }).join('') + '</tr>';
+  var meds = '<tr class="tot"><td>Mediana do grupo</td><td></td>' + IND.map(function(d){ return '<td>' + d.f(mediana(S.comp.map(d.get))) + '</td>'; }).join('') + '</tr>';
+  var rows = S.comp.map(function(x){ var e = BYID[x.id] || {nome:x.id, uf:'', pop:null};
+    return '<tr' + (x.id === me ? ' class="me"' : '') + '><td>' + esc(nomeUF(e)) + '</td><td>' + (e.pop ? nf0.format(e.pop) : '—') + '</td>' + IND.map(function(d){ return '<td>' + d.f(d.get(x)) + '</td>'; }).join('') + '</tr>'; });
+  var per = S.comp.filter(function(x){ return x.rgf || x.rreo || x.dca; }).map(function(x){ return (BYID[x.id] || {}).nome + ': ' + [x.rgf ? 'RGF ' + x.rgf.short : null, x.rreo ? 'RREO ' + x.rreo.short : null, x.dca ? 'DCA ' + x.dca.ano : null].filter(Boolean).join(', '); });
+  $('tComp').innerHTML = '<table><thead>' + head + '</thead><tbody>' + rows.join('') + meds + '</tbody></table><p class="note">Períodos usados: ' + esc(per.join(' · ')) + '</p>';
+}
+function curto(d){ return {pessoal:'Pessoal % RCL', dcl:'DCL % RCL', realRec:'Receita / previsão', execDesp:'Empenho / dotação', primPc:'Primário R$/hab', rcPc:'Rec. corr. R$/hab', trib:'Tributária %', roy:'Royalties %', pesDesp:'Pessoal % desp.', inv:'Invest. % desp.', saude:'Saúde R$/hab', educ:'Educação R$/hab', liq:'Liquidez corr.', endiv:'Endividamento'}[d.k]; }
+function graficoComp(){
+  var ind = IND[+$('selInd').value || 0], L = ranking(ind), me = S.ente ? S.ente.id : null;
+  $('cmpChartBox').style.height = Math.max(220, L.length * 32 + 60) + 'px';
+  var cores = L.map(function(x){ return x.id === me ? '#d4621a' : '#1f5fa8'; });
+  if (ind.k === 'pessoal') cores = L.map(function(x){ var r = (S.comp.find(function(c){ return c.id === x.id; }) || {}).rgf; return COR[statusDe(x.v, r ? r.limMax : 54, true).c]; });
+  mkChart('chComp', {type:'bar', data:{labels:L.map(function(x){ return (BYID[x.id] || {}).nome || x.id; }), datasets:[{label:ind.n, data:L.map(function(x){ return x.v; }), backgroundColor:cores}]},
+    options:{indexAxis:'y', maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{callbacks:{label:function(c){ return ind.f(c.parsed.x); }}}}}});
+  var med = mediana(L.map(function(x){ return x.v; }));
+  $('cmpNota').innerHTML = 'Mediana do grupo: <b>' + ind.f(med) + '</b>' + (ind.k === 'pessoal' ? ' · cores pelo semáforo da LRF' : ' · em laranja, o município carregado no painel');
+}
+
+/* ================= Exportação ================= */
+function tabela(qual){
+  var u = S.E[S.E.length - 1];
+  if (qual === 'serie') return [['Período','DTP % RCL aj.','DTP','RCL ajustada','RCL','Despesa bruta','Pessoal ativo','Inativos e pensionistas','Despesas não computadas','Inativos c/ rec. vinculados','DCL','DCL % RCL aj.','Câmara DTP','Câmara %']].concat(
+    S.E.map(function(r){ var c = camaraDe(r); return [r.label, r.dtpPct, r.dtp, r.rclAj, r.rcl, r.bruta, r.ativo, r.inativo, r.naoComp, r.inatVinc, r.dcl, r.dclPct, c ? c.dtp : null, c ? c.dtpPct : null]; }));
+  if (qual === 'mensal') return [['Mês','Despesa bruta','Pessoal ativo','Inativos e pensionistas','Despesas não computadas','Despesa líquida']].concat(
+    (u ? u.mensal : []).map(function(m){ return [m.mes, m.bruta, m.ativo, m.inativo, m.naoComp, m.liquida]; }));
+  if (qual === 'rec') return [['Receita (12 meses, RREO ' + (S.rreo ? S.rreo.label : '') + ')','Valor']].concat((S.rreo ? S.rreo.receitas : []).map(function(x){ return [x.nome, x.v]; }));
+  if (qual === 'dca') return [['Item'].concat(S.dca.map(function(d){ return String(d.ano); }))].concat(DCA_LINHAS.filter(function(l){ return l[0] !== 's'; }).map(function(l){ return [l[1].replace(/^· /,'  ')].concat(S.dca.map(function(d){ return d[l[0]]; })); }));
+  if (qual === 'fun'){ var dd = S.dca[S.dca.length-1]; return [['Função','Empenhado ' + (dd ? dd.ano : ''),'Per capita']].concat(dd ? dd.funcoes.map(function(f){ return [f.cod + ' - ' + f.nome, f.v, f.v / S.ente.pop]; }) : []); }
+  if (qual === 'msc') return [['Conta','Descrição','Saldo atual','Saldo comparação']].concat(S.msc && S.msc.tabela ? S.msc.tabela : []);
+  return [['Município','UF','População'].concat(IND.map(function(d){ return d.n; }))].concat(
+    S.comp.map(function(x){ var e = BYID[x.id] || {}; return [e.nome, e.uf, e.pop].concat(IND.map(function(d){ return d.get(x); })); }));
+}
+function celula(v){
+  if (v == null || (typeof v === 'number' && isNaN(v))) return '';
+  if (typeof v === 'number') return String(Math.round(v*100)/100).replace('.', ',');
+  var s = String(v); return /[;"\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s;
+}
+function exportar(qual){
+  if (!S.ente) return xmsg('Carregue um município primeiro.');
+  var t = tabela(qual);
+  if (t.length < 2) return xmsg('Ainda não há dados para essa tabela (abra a aba correspondente ou rode a consulta).');
+  var csv = '﻿' + t.map(function(l){ return l.map(celula).join(';'); }).join('\r\n');
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8'}));
+  a.download = 'siconfi-' + qual + '-' + S.ente.nome.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'-') + '.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+  xmsg('Arquivo gerado.');
+}
+function copiar(qual){
+  if (!S.ente) return xmsg('Carregue um município primeiro.');
+  var tsv = tabela(qual).map(function(l){ return l.map(function(v){ return celula(v).replace(/^"|"$/g,''); }).join('\t'); }).join('\n');
+  navigator.clipboard.writeText(tsv).then(function(){ xmsg('Copiado. Cole no Excel.'); }, function(){ xmsg('O navegador bloqueou a cópia.'); });
+}
+function xmsg(t){ $('xMsg').textContent = t; }
+
+/* ================= Relatórios ================= */
+function assinatura(){
+  var nome = LS.get('siconfi_nome',''), mat = LS.get('siconfi_mat',''), hoje = new Date().toLocaleDateString('pt-BR');
+  return '<div class="ass">' + (nome ? esc(nome) : '______________________________') + (mat ? '<br>Matrícula ' + esc(mat) : '') + '<br>' + hoje + '</div>';
+}
+function imprimir(h){ $('print').innerHTML = h; setTimeout(function(){ window.print(); }, 60); }
+function relEnte(){
+  if (!S.ente || !S.E.length) return xmsg('Carregue um município primeiro.');
+  var u = S.E[S.E.length - 1], cam = camaraDe(u), r = S.rreo, hoje = new Date().toLocaleDateString('pt-BR');
+  var h = '<h1>Relatório fiscal · ' + esc(nomeUF(S.ente)) + '</h1><p>População: ' + nf0.format(S.ente.pop) + ' hab. · Fonte: Siconfi/STN, API de dados abertos, consulta em ' + hoje + '.</p>';
+  h += '<h2>1. Gestão fiscal (RGF do ' + esc(u.label) + ')</h2><table><tr><th>Indicador</th><th>Valor</th><th>% RCL ajustada</th><th>Limite</th><th>Situação</th></tr>';
+  function lin(n, v, p, l, cp){ return '<tr><td>' + n + '</td><td>' + brl(v) + '</td><td>' + pct(p) + '</td><td>' + pct(l) + '</td><td>' + statusDe(p, l, cp).t + '</td></tr>'; }
+  h += lin('Despesa com pessoal · Executivo', u.dtp, u.dtpPct, u.limMax, true);
+  if (cam) h += lin('Despesa com pessoal · Câmara', cam.dtp, cam.dtpPct, 6, true);
+  if (cam) h += lin('Despesa com pessoal · Município', u.dtp + cam.dtp, u.dtpPct + cam.dtpPct, 60, false);
+  if (u.dclPct != null) h += lin('Dívida consolidada líquida', u.dcl, u.dclPct, 120, false);
+  h += '</table><p><b>Observações</b></p><ul>' + observacoes().map(function(o){ return '<li>' + o + '</li>'; }).join('') + '</ul>' + tabelaSerie();
+  if (r){
+    h += '<h2>2. Execução orçamentária (RREO do ' + r.label + ')</h2><table><tr><th>Item</th><th>Valor acumulado</th><th>Relação</th></tr>' +
+      '<tr><td>Receita realizada</td><td>' + brl(r.rec) + '</td><td>' + pct1(div(r.rec, r.prev)*100) + ' da previsão atualizada</td></tr>' +
+      '<tr><td>Despesa empenhada</td><td>' + brl(r.emp) + '</td><td>' + pct1(div(r.emp, r.dot)*100) + ' da dotação atualizada</td></tr>' +
+      '<tr><td>Despesa liquidada</td><td>' + brl(r.liq) + '</td><td>' + pct1(div(r.liq, r.emp)*100) + ' do empenhado</td></tr>' +
+      '<tr><td>Despesa paga</td><td>' + brl(r.pag) + '</td><td>' + pct1(div(r.pag, r.liq)*100) + ' do liquidado</td></tr>' +
+      '<tr><td>Resultado orçamentário</td><td>' + brl(r.sup) + '</td><td></td></tr><tr><td>Resultado primário</td><td>' + brl(r.prim) + '</td><td></td></tr><tr><td>Resultado nominal</td><td>' + brl(r.nom) + '</td><td></td></tr></table>' + $('tRec').innerHTML;
+  }
+  if (S.dca.length) h += '<h2>3. Balanços anuais (DCA ' + S.dca.map(function(d){ return d.ano; }).join(', ') + ')</h2>' + $('tDca').innerHTML;
+  h += assinatura();
+  imprimir(h);
+}
+function relComp(){
+  if (!S.comp.length) return xmsg('Rode a comparação na aba Comparar municípios primeiro.');
+  var hoje = new Date().toLocaleDateString('pt-BR'), me = S.ente ? S.ente.id : null;
+  var nomes = S.comp.map(function(x){ return (BYID[x.id] || {}).nome; }).join(', ');
+  var h = '<h1>Relatório comparativo de indicadores fiscais</h1><p>' + (S.ente ? 'Município de referência: <b>' + esc(nomeUF(S.ente)) + '</b>. ' : '') + 'Grupo: ' + esc(nomes) + '. Fonte: Siconfi/STN, consulta em ' + hoje + '.</p>';
+  h += '<h2>Posição do município de referência</h2><ul>' + IND.map(textoPosicao).filter(Boolean).map(function(t){ return '<li>' + t + '</li>'; }).join('') + '</ul>';
+  IND.forEach(function(d){
+    var L = ranking(d); if (!L.length) return;
+    h += '<h2>' + esc(d.g + ' · ' + d.n) + '</h2><table><tr><th>#</th><th>Município</th><th>Valor</th></tr>' + L.map(function(x, i){ return '<tr' + (x.id === me ? ' style="font-weight:bold"' : '') + '><td>' + (i + 1) + '</td><td>' + esc((BYID[x.id] || {}).nome || x.id) + '</td><td>' + d.f(x.v) + '</td></tr>'; }).join('') + '<tr><td></td><td>Mediana</td><td>' + d.f(mediana(L.map(function(x){ return x.v; }))) + '</td></tr></table>';
+  });
+  h += '<p>Notas: RGF e RREO mais recentes disponíveis de cada município; DCA do último exercício entregue. Per capita com a população atual do cadastro do Siconfi. Despesas por função são empenhadas e não equivalem aos mínimos constitucionais de saúde e educação, apurados no SIOPS e no SIOPE.</p>';
+  h += assinatura();
+  imprimir(h);
+}
+
+/* ================= Navegação e eventos ================= */
+var VIEWS = ['painel','mensal','rreo','dca','msc','comparar','relatorios','config'];
+function abrir(v){
+  Array.prototype.forEach.call(document.querySelectorAll('#tabs a'), function(a){ a.classList.toggle('on', a.getAttribute('data-v') === v); });
+  Array.prototype.forEach.call(document.querySelectorAll('.view'), function(s){ s.classList.toggle('on', s.id === 'v-' + v); });
+  if (location.hash !== '#' + v) history.replaceState(null, '', '#' + v);
+  Object.keys(charts).forEach(function(k){ if (charts[k]) charts[k].resize(); });
+  if (v === 'msc' && S.ente && !S.msc && $('mMes').value) consultarMsc();
+}
+$('tabs').addEventListener('click', function(ev){ var v = ev.target.getAttribute('data-v'); if (v) abrir(v); });
+$('fBusca').addEventListener('submit', function(ev){ ev.preventDefault(); var e = findEnte($('qEnte').value); if (e){ abrir('painel'); carregar(e); } else msg('Escolha um município da lista (ex.: "Campos dos Goytacazes - RJ").'); });
+$('bAdd').addEventListener('click', function(){ var e = findEnte($('qComp').value); if (e && COMP.indexOf(e.id) < 0){ COMP.push(e.id); renderChips(); } $('qComp').value = ''; });
+$('qComp').addEventListener('keydown', function(ev){ if (ev.key === 'Enter'){ ev.preventDefault(); $('bAdd').click(); } });
+$('chips').addEventListener('click', function(ev){ var id = ev.target.getAttribute('data-rm'); if (id){ COMP = COMP.filter(function(x){ return String(x) !== id; }); renderChips(); } });
+$('bPreset').addEventListener('click', function(){ COMP = PRESET.slice(); renderChips(); });
+$('bLimpar').addEventListener('click', function(){ COMP = []; renderChips(); });
+$('bComparar').addEventListener('click', comparar);
+$('selInd').addEventListener('change', graficoComp);
+$('mAno').addEventListener('change', mesesMsc);
+$('bMsc').addEventListener('click', consultarMsc);
+$('mPoder').addEventListener('change', function(){ if (S.msc){ renderMsc(); renderFontes(); } });
+$('tMsc').addEventListener('click', function(ev){ var tr = ev.target.closest('tr[data-k]'); if (tr) abreConta(tr.getAttribute('data-k')); });
+$('mscCrumb').addEventListener('click', function(ev){ var p = ev.target.getAttribute('data-p'); if (p) abreConta(p); });
+Array.prototype.forEach.call(document.querySelectorAll('[data-x]'), function(b){ b.addEventListener('click', function(){ exportar(b.getAttribute('data-x')); }); });
+Array.prototype.forEach.call(document.querySelectorAll('[data-c]'), function(b){ b.addEventListener('click', function(){ copiar(b.getAttribute('data-c')); }); });
+$('bRelEnte').addEventListener('click', relEnte);
+$('bRelComp').addEventListener('click', relComp);
+$('bSalvar').addEventListener('click', function(){
+  LS.set('siconfi_proxy', $('cProxy').value.trim()); LS.set('siconfi_nome', $('cNome').value.trim()); LS.set('siconfi_mat', $('cMat').value.trim());
+  cache = {}; $('cMsg').textContent = 'Salvo.'; modo(); iniciar();
+});
+function modo(){
+  var b = apiBase();
+  $('modo').innerHTML = location.hostname === 'apidatalake.tesouro.gov.br' ? 'Modo direto: página aberta no domínio da própria API.' : (b ? 'Usando o proxy <code>' + esc(b) + '</code>.' : 'Nenhum proxy configurado.');
+}
+function iniciar(){
+  if (!apiBase()){ erro(new Error('SEM_PROXY')); return; }
+  msg('');
+  loadEntes().then(function(){
+    COMP = compIds(); renderChips();
+    $('selInd').innerHTML = IND.map(function(d, i){ return '<option value="' + i + '">' + d.g + ' · ' + esc(d.n) + '</option>'; }).join('');
+    var id = +LS.get('siconfi_ente', DEFAULT_ENTE), e = BYID[id] || BYID[DEFAULT_ENTE];
+    return carregar(e);
+  }).catch(erro);
+}
+$('cProxy').value = LS.get('siconfi_proxy', DEFAULT_PROXY); $('cNome').value = LS.get('siconfi_nome',''); $('cMat').value = LS.get('siconfi_mat','');
+modo();
+var h0 = location.hash.replace('#',''); if (VIEWS.indexOf(h0) >= 0 && h0 !== 'msc') abrir(h0);
+iniciar();
+})();
+</script>
+</body>
+</html>
