@@ -637,7 +637,7 @@ function renderRREO(){
   h += kpiS('Despesa empenhada', mi(r.emp), pct1(div(r.emp, r.dot)*100) + ' da dotação atualizada (' + mi(r.dot) + ')');
   h += kpiS('Despesa liquidada', mi(r.liq), pct1(div(r.liq, r.emp)*100) + ' do empenhado');
   h += kpiS('Despesa paga', mi(r.pag), pct1(div(r.pag, r.liq)*100) + ' do liquidado');
-  h += kpiS((r.sup != null && r.sup < 0) ? 'Déficit orçamentário' : 'Superávit orçamentário', mi(r.sup), 'Receita realizada − despesa liquidada (critério do RREO)');
+  h += kpiS((r.sup != null && r.sup < 0) ? 'Déficit orçamentário' : 'Superávit orçamentário', mi(r.sup), 'Receita realizada − despesa ' + (r.p === 6 ? 'empenhada (6º bimestre)' : 'liquidada (até o 5º bimestre)'));
   if (r.rec != null && r.emp != null && r.emp > r.rec) h += kpiS('Empenho acima da receita', mi(r.emp - r.rec), 'Despesa empenhada supera a receita realizada no ano');
   h += kpiS('Resultado primário', mi(r.prim), 'Acima da linha, sem RPPS');
   h += kpiS('Resultado nominal', mi(r.nom), 'Abaixo da linha, sem RPPS');
