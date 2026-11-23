@@ -1211,15 +1211,35 @@ function relEnte(){
   h += assinatura();
   imprimir(h);
 }
+function limpaTab(t){ var c = t.cloneNode(true); c.querySelectorAll('[title]').forEach(function(e){ e.removeAttribute('title'); }); c.removeAttribute('style'); return c; }
+/* Matriz em blocos de colunas: com grupos grandes a tabela única trava a impressão */
+function matrizBlocos(t, n){
+  if (!t) return '';
+  var rows = [].slice.call(limpaTab(t).rows), nc = rows[0].cells.length, fixas = 2, out = '';
+  for (var i = fixas; i < nc; i += n){
+    var fim = Math.min(nc, i + n), tb = '<table class="mx">';
+    rows.forEach(function(r, k){
+      var cs = r.cells;
+      if (cs.length === 1){ tb += '<tr class="' + r.className + '"><td colspan="' + (fixas + fim - i) + '">' + cs[0].innerHTML + '</td></tr>'; return; }
+      var tag = k === 0 ? 'th' : 'td', lin = '<tr class="' + r.className + '">';
+      for (var j = 0; j < fixas; j++) lin += cs[j] ? cs[j].outerHTML : '<' + tag + '></' + tag + '>';
+      for (var j2 = i; j2 < fim; j2++) lin += cs[j2] ? cs[j2].outerHTML : '<' + tag + '></' + tag + '>';
+      tb += lin + '</tr>';
+    });
+    out += tb + '</table>';
+  }
+  return out;
+}
 function relComp(){
   if (!S.comp.length || !S.padrao) return xmsg('Rode a análise na aba Análise comparativa primeiro.');
   var hoje = new Date().toLocaleDateString('pt-BR'), x = refX(), e = BYID[x.id] || {nome:x.id, uf:''}, ct = contagem(x);
   var nomes = S.comp.map(function(c){ return (BYID[c.id] || {}).nome; }).join(', ');
-  var h = '<h1>Análise das demonstrações contábeis · ' + esc(nomeUF(e)) + ' · exercício ' + S.compAno + '</h1>';
+  var h = '<style>@page{size:A4 landscape;margin:10mm}#print .mx{font-size:8.5px;page-break-inside:avoid}#print .mx td,#print .mx th{padding:2px 3px}</style><h1>Análise das demonstrações contábeis · ' + esc(nomeUF(e)) + ' · exercício ' + S.compAno + '</h1>';
   h += '<p>Metodologia ECG/TCE-RJ. Grupo de comparação (padrão = média): ' + esc(nomes) + '. Fonte: Siconfi/STN (DCA, RREO do 6º bimestre e MSC de dezembro), consulta em ' + hoje + '.</p>';
   h += '<p><b>Resumo do perfil:</b> nota média ' + (ct.media == null ? '—' : nf2.format(ct.media)) + ' (1 a 5) · ' + ['O','B','S','R','I'].map(function(k){ return ct.c[k] + ' ' + PERFIS[k].n.toLowerCase(); }).join(', ') + '.</p>';
   h += '<h2>Ficha do município</h2>' + fichaHTML(x);
-  h += '<h2>Matriz do grupo</h2>' + $('tComp').innerHTML;
+  if ($('cmpRank').querySelector('table')) h += '<h2>Ranking do grupo</h2>' + limpaTab($('cmpRank').querySelector('table')).outerHTML;
+  h += '<h2>Matriz do grupo</h2>' + matrizBlocos($('tComp').querySelector('table'), 7) + (($('tComp').querySelector('.note') || {}).outerHTML || '');
   h += '<h2>Metodologia</h2>' + METODO;
   var a = S.compAno, it = [];
   S.comp.forEach(function(c){ var n = nomeId(c.id);
