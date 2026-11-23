@@ -504,6 +504,15 @@ function rreo(id, e, anexo){
   if (anexo) q.no_anexo = anexo;
   return api('rreo', q);
 }
+/* Municípios abaixo de 50 mil hab. podem entregar o "RREO Simplificado" (LRF art. 63): tenta os dois tipos */
+var TIPO_RREO = {};
+function rreoA14(id, ano, p){
+  var k = id + '|' + ano + '|' + p, t1 = TIPO_RREO[k] || 'RREO', t2 = t1 === 'RREO' ? 'RREO Simplificado' : 'RREO';
+  return rreo(id, {ano:ano, p:p, tipo:t1}, 'RREO-Anexo 14').then(function(it){
+    if (it && it.length){ TIPO_RREO[k] = t1; return it; }
+    return rreo(id, {ano:ano, p:p, tipo:t2}, 'RREO-Anexo 14').then(function(it2){ if (it2 && it2.length) TIPO_RREO[k] = t2; return it2 || []; });
+  });
+}
 function parseRREO(items, e){
   var r = {ano:e.ano, p:e.p, label: e.p + 'º bimestre de ' + e.ano, short: e.p + 'B/' + String(e.ano).slice(2)};
   var A14 = 'Anexo 14', ATE = /At. o Bimestre|Apurado/i;
@@ -1029,9 +1038,9 @@ function dadosExerc(id, ano){
   var pop = BYID[id] ? BYID[id].pop : null;
   return Promise.all([
     dcaAno(id, ano).catch(function(){ return null; }),
-    rreo(id, {ano:ano, p:6, tipo:'RREO'}, 'RREO-Anexo 14').then(function(it){ var r = parseRREO(it, {ano:ano, p:6}); return r.rec != null ? r : null; }).catch(function(){ return null; }),
+    rreoA14(id, ano, 6).then(function(it){ var r = parseRREO(it, {ano:ano, p:6}); return r.rec != null ? r : null; }).catch(function(){ return null; }),
     daAno(id, ano).catch(function(){ return null; }),
-    rreo(id, {ano:ano + 1, p:1, tipo:'RREO'}, 'RREO-Anexo 14').then(function(it){ var r = parseRREO(it, {ano:ano + 1, p:1}); return r.rpp && r.rpp.insc > 0 ? r.rpp.insc : null; }).catch(function(){ return null; })
+    rreoA14(id, ano + 1, 1).then(function(it){ var r = parseRREO(it, {ano:ano + 1, p:1}); return r.rpp && r.rpp.insc > 0 ? r.rpp.insc : null; }).catch(function(){ return null; })
   ]).then(function(rs){ if (rs[0] && rs[3] != null) rs[0].rpp = rs[3]; if (rs[0] && !(rs[0].rpp > 0)) rs[0].rpp = null; return {id:id, pop:pop, d:rs[0], r:rs[1], da:rs[2]}; });
 }
 function comparar(){
@@ -1244,7 +1253,7 @@ function relComp(){
   var a = S.compAno, it = [];
   S.comp.forEach(function(c){ var n = nomeId(c.id);
     it.push(['DCA ' + a + ' · ' + n, linkApi('dca', {an_exercicio:a, id_ente:c.id})]);
-    it.push(['RREO 6º bim. ' + a + ' (Anexo 14) · ' + n, linkApi('rreo', {an_exercicio:a, nr_periodo:6, co_tipo_demonstrativo:'RREO', id_ente:c.id, no_anexo:'RREO-Anexo 14'})]);
+    it.push(['RREO 6º bim. ' + a + ' (Anexo 14) · ' + n, linkApi('rreo', {an_exercicio:a, nr_periodo:6, co_tipo_demonstrativo:TIPO_RREO[c.id + '|' + a + '|6'] || 'RREO', id_ente:c.id, no_anexo:'RREO-Anexo 14'})]);
     it.push(['MSC dez. ' + a + ' (classe 6) · ' + n, linkApi('msc_orcamentaria', {id_ente:c.id, an_referencia:a, me_referencia:12, co_tipo_matriz:'MSCC', classe_conta:6, id_tv:'ending_balance'})]);
   });
   h += blocoFontes('comparar', it);
@@ -1306,7 +1315,7 @@ function grupoRreo(){
   $('bGrpRreo').disabled = true; $('gRreoMeta').textContent = 'Lendo o RREO do ' + r.label + ' de ' + ids.length + ' municípios…';
   pool(ids.map(function(id){ return function(){
     var q = {ano:r.ano, p:r.p, tipo:'RREO'};
-    return rreo(id, q, 'RREO-Anexo 14').then(function(it){ var x = parseRREO(it || [], q); x.id = id; x.vazio = x.rec == null; x.q = {an_exercicio:r.ano, nr_periodo:r.p, co_tipo_demonstrativo:'RREO', id_ente:id, no_anexo:'RREO-Anexo 14'}; return x; });
+    return rreoA14(id, r.ano, r.p).then(function(it){ var x = parseRREO(it || [], q); x.id = id; x.vazio = x.rec == null; x.q = {an_exercicio:r.ano, nr_periodo:r.p, co_tipo_demonstrativo:TIPO_RREO[id + '|' + r.ano + '|' + r.p] || 'RREO', id_ente:id, no_anexo:'RREO-Anexo 14'}; return x; });
   }; }), 3).then(function(rs){
     S.gRreo = {r:r, rows:rs.map(function(x, i){ return x && !x.erro ? x : {id:ids[i], vazio:true}; })};
     renderGrupoRreo();
