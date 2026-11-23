@@ -1373,7 +1373,7 @@ var GLOS = {
   'Transferências': ['Dinheiro repassado à prefeitura pelo estado ou pela União, como o ICMS, o FPM e os royalties do petróleo.', 'Receitas de transferências correntes e de capital (categoria 1.7 e 2.4 da natureza de receita), constitucionais, legais ou voluntárias.']
 };
 function g(termo, txt){ return '<span class="g" data-g="' + esc(termo) + '">' + esc(txt || termo) + '</span>'; }
-function tom(){ return LS.get('pf_tom', '') || ({estudante:'estudante', servidor:'servidor', ente:'servidor'}[LS.get('pf_perfil','')] || 'cidadao'); }
+function tom(){ var o = LS.get('pf_orgao', ''), pf = LS.get('pf_perfil', '') || (o ? perfilDe(o) : ''); return LS.get('pf_tom', '') || ({estudante:'estudante', servidor:'servidor', ente:'servidor'}[pf] || 'cidadao'); }
 function aplicaTom(t){
   if (t) LS.set('pf_tom', t);
   t = tom();
