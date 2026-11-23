@@ -87,6 +87,21 @@ code{background:#eef0f4;padding:1px 5px;border-radius:4px;font-size:12px}
 #ident label{display:block;margin:14px 0 4px;font-weight:600;font-size:13px}
 #ident .priv{background:#f3f6fa;border-radius:8px;padding:10px 12px;font-size:12.5px;color:#33405a;margin-top:14px}
 #ident .priv ul{margin:6px 0 0;padding-left:18px}
+#ident .perfis{display:flex;flex-direction:column;gap:6px;margin-top:14px}
+body:not(.tom-cidadao) .t-cid{display:none}
+body:not(.tom-estudante) .t-est{display:none}
+body.tom-servidor .t-ce{display:none}
+body.tom-cidadao .t-nocid{display:none}
+.g{border-bottom:1px dotted var(--acc);cursor:help;color:inherit}
+body.tom-servidor .g{border:0;cursor:auto}
+#gPop{position:absolute;z-index:40;max-width:360px;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,.18);padding:12px 14px;font-size:13px}
+#gPop p{margin:6px 0 8px;line-height:1.45}#gPop a{font-size:12px;color:var(--acc);cursor:pointer}
+.ent p{margin:0 0 8px;line-height:1.55}.ent{font-size:14px}
+#tomSel{display:flex;gap:4px;align-items:center;font-size:12px}#tomSel span{opacity:.75;margin-right:2px}
+#tomSel button{background:transparent;border:1px solid rgba(255,255,255,.35);color:#fff;padding:4px 10px;border-radius:14px;font-size:12px;cursor:pointer}
+#tomSel button.on{background:#fff;color:var(--navy);border-color:#fff;font-weight:600}
+#lGlos dt{font-weight:650;margin-top:12px}#lGlos dd{margin:3px 0 0;line-height:1.5;color:#333}
+#ident .perfis label{margin:0;font-weight:500;display:flex;gap:8px;align-items:center;cursor:pointer}
 #idTag{font-size:12px;opacity:.75;cursor:pointer;white-space:nowrap}
 @media print{header,nav,main,#ident{display:none!important}#print{display:block}body{background:#fff}}
 </style>
@@ -94,22 +109,24 @@ code{background:#eef0f4;padding:1px 5px;border-radius:4px;font-size:12px}
 <body>
 <header>
   <div><h1>Painel Fiscal Municipal</h1><div class="sub">Dados abertos do Siconfi · Tesouro Nacional <span id="idTag" title="Alterar identificação"></span></div></div>
-  <form class="search" id="fBusca"><input type="search" id="qEnte" list="dlEntes" placeholder="Município, ex.: Campos dos Goytacazes - RJ" autocomplete="off"><datalist id="dlEntes"></datalist><button>Carregar</button></form>
+  <form class="search" id="fBusca"><input type="search" id="qEnte" list="dlEntes" placeholder="Digite ao menos 3 letras do município" autocomplete="off"><datalist id="dlEntes"></datalist><button>Carregar</button></form>
+  <div id="tomSel" role="group" aria-label="Linguagem do painel"><span>Ver como:</span><button type="button" data-tom="cidadao">Cidadão</button><button type="button" data-tom="estudante">Estudante</button><button type="button" data-tom="servidor">Servidor</button></div>
 </header>
-<nav id="tabs"><a data-v="comparar" class="on">Análise comparativa</a><a data-v="painel">Gestão fiscal (RGF)</a><a data-v="mensal">Pessoal mês a mês</a><a data-v="rreo">Execução orçamentária (RREO)</a><a data-v="dca">Balanço anual (DCA)</a><a data-v="msc">Contabilidade (MSC)</a><a data-v="relatorios">Relatórios e exportação</a><a data-v="config">Configurações</a></nav>
+<nav id="tabs"><a data-v="comparar" class="on">Análise comparativa</a><a data-v="painel">Gestão fiscal (RGF)</a><a data-v="mensal">Pessoal mês a mês</a><a data-v="rreo">Execução orçamentária (RREO)</a><a data-v="dca">Balanço anual (DCA)</a><a data-v="msc">Contabilidade (MSC)</a><a data-v="relatorios">Relatórios e exportação</a><a data-v="glossario" class="t-ce">Glossário</a><a data-v="config">Configurações</a></nav>
 <main>
 <div id="msg"></div>
 
 <section class="view on" id="v-painel">
   <div class="row" style="margin-bottom:10px"><label>Período <select id="pSel"></select></label></div>
   <p class="meta" id="pMeta">Carregando…</p>
+  <div class="card ent t-ce" style="margin-bottom:12px"><h2>Entenda</h2><div id="rgfEnt"></div></div>
   <div class="grid" id="kpis"></div>
   <div class="card" style="margin-bottom:12px"><div class="gHead"><h2>Comparação com o grupo</h2><div class="row"><button class="sec" id="bGrpRgf">Comparar com o grupo</button><button class="sec" id="bPdfRgf">Exportar PDF</button></div></div>
     <p class="note" id="gRgfMeta">Compara o Executivo com o mesmo grupo da Análise comparativa, no período selecionado acima.</p>
     <div class="two"><div class="chart" id="gRgfBox" style="height:220px"><canvas id="chGRgf"></canvas></div><div class="tbl" id="tGRgf"></div></div></div>
   <div class="two">
     <div class="card"><h2>Despesa com pessoal do Executivo (% da RCL ajustada)</h2><div class="chart"><canvas id="chSerie"></canvas></div></div>
-    <div class="card"><h2>Observações automáticas</h2><ul class="obs" id="obs"></ul><p class="note">Sinais gerados por regras simples sobre os valores declarados. Confirme nas notas explicativas antes de concluir.</p></div>
+    <div class="card t-nocid"><h2>Observações automáticas</h2><ul class="obs" id="obs"></ul><p class="note">Sinais gerados por regras simples sobre os valores declarados. Confirme nas notas explicativas antes de concluir.</p></div>
   </div>
   <div class="card" style="margin-top:12px"><h2>Série histórica</h2><div class="tbl" id="tSerie"></div></div>
 </section>
@@ -124,6 +141,7 @@ code{background:#eef0f4;padding:1px 5px;border-radius:4px;font-size:12px}
 <section class="view" id="v-rreo">
   <div class="row" style="margin-bottom:10px"><label>Bimestre <select id="rSel"></select></label></div>
   <p class="meta" id="rMeta">Carregando…</p>
+  <div class="card ent t-ce" style="margin-bottom:12px"><h2>Entenda</h2><div id="rreoEnt"></div></div>
   <div class="grid" id="rKpis"></div>
   <div class="card" style="margin-bottom:12px"><div class="gHead"><h2>Comparação com o grupo</h2><div class="row"><button class="sec" id="bGrpRreo">Comparar com o grupo</button><button class="sec" id="bPdfRreo">Exportar PDF</button></div></div>
     <p class="note" id="gRreoMeta">Compara a execução orçamentária com o mesmo grupo da Análise comparativa, no bimestre selecionado acima.</p>
@@ -166,11 +184,12 @@ code{background:#eef0f4;padding:1px 5px;border-radius:4px;font-size:12px}
 <section class="view" id="v-comparar">
   <div class="card">
     <div class="cmpHead"><h2>Análise comparativa</h2><p class="note" id="cmpSub" style="margin:0 0 12px">Compare o município com outros de perfil parecido, pelos índices das demonstrações contábeis na metodologia da ECG/TCE-RJ.</p></div>
-    <div class="row"><div style="flex:1;min-width:240px"><input type="search" id="qComp" list="dlEntes" placeholder="Adicionar município ao grupo…" autocomplete="off"></div><button class="sec" id="bAdd">Adicionar</button><label>Sugestão por <select id="cmpCrit"><option value="eq">Região, população e PIB</option><option value="reg">Mesma região</option><option value="pop">População</option><option value="pib">PIB per capita</option></select></label><button class="sec" id="bSugerir">Sugerir 5 semelhantes</button><button class="sec" id="bLimpar">Limpar</button><label>Exercício <select id="cmpAno"></select></label><button id="bComparar">Analisar</button><button class="sec" id="bPdfComp">Exportar PDF</button></div>
+    <div class="row"><div style="flex:1;min-width:240px"><input type="search" id="qComp" list="dlComp" placeholder="Adicionar município (3 letras ou mais)…" autocomplete="off"><datalist id="dlComp"></datalist></div><button class="sec" id="bAdd">Adicionar</button><label>Sugestão por <select id="cmpCrit"><option value="eq">Região, população e PIB</option><option value="reg">Mesma região</option><option value="pop">População</option><option value="pib">PIB per capita</option></select></label><button class="sec" id="bSugerir">Sugerir 5 semelhantes</button><button class="sec" id="bLimpar">Limpar</button><label>Exercício <select id="cmpAno"></select></label><button id="bComparar">Analisar</button><button class="sec" id="bPdfComp">Exportar PDF</button></div>
     <div class="chips" id="chips"></div>
     <p class="note" id="sugNota"></p>
     <p class="note">Análise das demonstrações contábeis pela metodologia da ECG/TCE-RJ: cada índice é comparado com a média do grupo (padrão) e classificado de Insatisfatório a Ótimo. O município carregado no painel é o de referência e entra sempre no grupo.</p>
   </div>
+  <div class="card ent t-ce" id="cmpEntBox" style="margin-top:12px" hidden><h2>Entenda</h2><div id="cmpEnt"></div></div>
   <div class="grid" id="cmpResumo" style="margin-top:12px"></div>
   <div class="two eq" style="margin-top:12px">
     <div class="card"><h2>Pontos fortes e de atenção</h2><div id="cmpDest"><p class="note">Aparecem depois da análise.</p></div></div>
@@ -182,6 +201,11 @@ code{background:#eef0f4;padding:1px 5px;border-radius:4px;font-size:12px}
   </div>
   <div class="card" style="margin-top:12px"><h2>Matriz do grupo</h2><div class="tbl" id="tComp"></div></div>
   <div class="card" style="margin-top:12px"><h2>Metodologia</h2><div class="note" id="metodo"></div></div>
+</section>
+
+<section class="view" id="v-glossario">
+  <div class="card"><h2>Glossário</h2><p class="note">Os termos de finanças públicas usados no painel. A explicação muda conforme a opção "Ver como", no alto da página.</p>
+    <input type="search" id="qGlos" placeholder="Buscar termo…" style="max-width:360px;margin:6px 0 4px"><dl id="lGlos"></dl></div>
 </section>
 
 <section class="view" id="v-relatorios">
@@ -229,7 +253,7 @@ code{background:#eef0f4;padding:1px 5px;border-radius:4px;font-size:12px}
   <div class="grid" id="uKpis" style="margin-top:12px"></div>
   <div class="two eq">
     <div class="card"><h2>Pesquisas por dia</h2><div class="chart"><canvas id="chUso"></canvas></div></div>
-    <div class="card"><h2>Quem usa (ente e setor informados)</h2><div class="tbl" id="uOrg"></div></div>
+    <div class="card"><h2>Quem usa (perfil informado)</h2><div class="tbl" id="uOrg"></div></div>
   </div>
   <div class="two eq" style="margin-top:12px">
     <div class="card"><h2>Municípios pesquisados</h2><div class="tbl" id="uEnt"></div></div>
@@ -239,16 +263,37 @@ code{background:#eef0f4;padding:1px 5px;border-radius:4px;font-size:12px}
 </section>
 </main>
 <div id="print"></div>
+<div id="gPop" hidden role="dialog"></div>
 <div id="ident" role="dialog" aria-modal="true" aria-labelledby="idTit">
   <form class="box" id="fIdent">
     <h2 id="idTit">Antes de começar</h2>
     <p class="note" style="margin:0">Queremos saber de onde vêm as consultas ao painel, para melhorá-lo e reunir as pesquisas em relatórios. Não é preciso se identificar pessoalmente.</p>
-    <label for="idOrg">Ente federativo em que você atua</label>
-    <input type="text" id="idOrg" list="dlOrg" placeholder="ex.: Campos dos Goytacazes - RJ" autocomplete="off" required><datalist id="dlOrg"></datalist>
-    <label for="idSet">Setor <span class="note" style="font-weight:400">(opcional)</span></label>
-    <input type="text" id="idSet" list="dlSet" placeholder="ex.: Controladoria, Contabilidade, Fazenda" autocomplete="off"><datalist id="dlSet"></datalist>
+    <div class="perfis" role="radiogroup" aria-label="Como você usa o painel">
+      <label><input type="radio" name="idPerf" value="cidadao" checked> Sou cidadão e quero acompanhar as contas do meu município</label>
+      <label><input type="radio" name="idPerf" value="estudante"> Sou estudante</label>
+      <label><input type="radio" name="idPerf" value="ente"> Sou servidor público</label>
+      <label><input type="radio" name="idPerf" value="anonimo"> Prefiro não me identificar</label>
+    </div>
+    <div id="idBoxCid">
+      <label for="idMora">Município onde você mora <span class="note" style="font-weight:400">(opcional)</span></label>
+      <input type="text" id="idMora" list="dlMora" placeholder="Digite ao menos 3 letras" autocomplete="off"><datalist id="dlMora"></datalist>
+      <p class="note" style="margin:4px 0 0">O painel já abre no seu município.</p>
+    </div>
+    <div id="idBoxEnte" hidden>
+      <label for="idOrg">Ente federativo em que você trabalha</label>
+      <input type="text" id="idOrg" list="dlOrg" placeholder="Digite ao menos 3 letras do município ou órgão" autocomplete="off"><datalist id="dlOrg"></datalist>
+      <label for="idSet">Setor <span class="note" style="font-weight:400">(opcional)</span></label>
+      <input type="text" id="idSet" list="dlSet" placeholder="ex.: Controladoria, Contabilidade, Fazenda" autocomplete="off"><datalist id="dlSet"></datalist>
+    </div>
+    <div id="idBoxEst" hidden>
+      <label for="idUni">Universidade ou instituição de ensino</label>
+      <input type="text" id="idUni" placeholder="Digite o nome da instituição" autocomplete="off">
+      <label for="idCur">Curso <span class="note" style="font-weight:400">(opcional)</span></label>
+      <input type="text" id="idCur" list="dlCur" placeholder="ex.: Ciências Contábeis" autocomplete="off"><datalist id="dlCur"></datalist>
+    </div>
+    <p class="note" id="idBoxAnon" hidden style="margin-top:12px">Tudo bem. As suas pesquisas entram no registro como "Não identificado", junto com as dos demais. O painel usa a linguagem para o cidadão, e você pode trocar em "Ver como", no alto da página.</p>
     <div class="priv"><b>O que fica registrado</b>
-      <ul><li>O ente e o setor informados acima.</li>
+      <ul><li>O perfil informado acima (município onde mora, instituição e curso, ente e setor, ou "Não identificado").</li>
       <li>O que foi pesquisado: município, relatório, período, comparações e exportações, com data e hora.</li>
       <li>Um código aleatório da visita, só para contar acessos.</li></ul>
       <div style="margin-top:6px">Não coletamos nome, e-mail, matrícula, endereço IP nem localização. O nome e a matrícula de Configurações ficam apenas no seu navegador.</div></div>
@@ -261,8 +306,6 @@ code{background:#eef0f4;padding:1px 5px;border-radius:4px;font-size:12px}
 'use strict';
 /* ================= Configuração ================= */
 var DEFAULT_PROXY = 'https://bdcwhalqakgtiajikoad.supabase.co/functions/v1/siconfi';
-var DEFAULT_ENTE = 3301009; // Campos dos Goytacazes
-var PRESET = [3301009,3302403,3305000,3304524,3300704,3303302,3303906,3306305,3303401,3305802];
 var SUG = {};
 var GRUPO_URL = (function(){ try { var q = new URLSearchParams(location.search), en = +q.get('ente'), g = (q.get('grupo') || '').split(',').map(Number).filter(function(x){ return x > 0; }); return en ? {ref:en, ids:g, ano:+q.get('ano') || null} : null; } catch(e){ return null; } })();
 var MESES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
@@ -340,18 +383,35 @@ function loadEntes(){
     return setEntes(d);
   });
 }
+var ENT_K = [];
+function semAcento(t){ return String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(); }
+function sugereEntes(q, extras, max){
+  q = semAcento(q.trim()); if (q.length < 3) return [];
+  max = max || 20; var ini = [], meio = [];
+  (extras || []).forEach(function(t){ var k = semAcento(t); if (k.indexOf(q) === 0) ini.push(t); else if (k.indexOf(q) > 0) meio.push(t); });
+  for (var i = 0; i < ENT_K.length && ini.length < max; i++){ var p = ENT_K[i].indexOf(q); if (p === 0) ini.push(nomeUF(ENTES[i])); else if (p > 0 && meio.length < max) meio.push(nomeUF(ENTES[i])); }
+  return ini.concat(meio).slice(0, max);
+}
+function ligaSugestao(inp, dl, extras){
+  var t = null;
+  $(inp).addEventListener('input', function(){
+    clearTimeout(t); var el = this;
+    t = setTimeout(function(){ $(dl).innerHTML = sugereEntes(el.value, extras).map(function(x){ return '<option value="' + esc(x) + '">'; }).join(''); }, 120);
+  });
+}
 function setEntes(d){
   ENTES = d.map(function(a){ return {id:a[0], nome:a[1], uf:a[2], pop:a[3]}; });
   ENTES.sort(function(a,b){ return a.nome.localeCompare(b.nome,'pt-BR'); });
   BYID = {}; ENTES.forEach(function(e){ BYID[e.id] = e; });
-  $('dlEntes').innerHTML = ENTES.map(function(e){ return '<option value="' + esc(nomeUF(e)) + '">'; }).join('');
+  ENT_K = ENTES.map(function(e){ return semAcento(nomeUF(e)); });
   return ENTES;
 }
 function nomeUF(e){ return e.nome + ' - ' + e.uf; }
 function findEnte(txt){
   var t = (txt || '').trim().toLowerCase(); if (!t) return null;
   return ENTES.find(function(e){ return nomeUF(e).toLowerCase() === t; }) ||
-         ENTES.find(function(e){ return e.nome.toLowerCase() === t; }) || null;
+         ENTES.find(function(e){ return e.nome.toLowerCase() === t; }) ||
+         (function(){ var k = semAcento(t), i = ENT_K.indexOf(k); if (i >= 0) return ENTES[i]; var m = ENTES.filter(function(e){ return semAcento(e.nome) === k; }); return m.length === 1 ? m[0] : null; })();
 }
 
 /* ================= Entregas ================= */
@@ -644,6 +704,7 @@ function renderPainel(){
     options:{maintainAspectRatio:false, plugins:{legend:{position:'bottom'}, tooltip:{callbacks:{label:function(c){ return c.dataset.label + ': ' + pct(c.parsed.y); }}}}, scales:{y:{ticks:{callback:function(v){ return v + '%'; }}}}}});
   $('tSerie').innerHTML = tabelaSerie();
   $('obs').innerHTML = observacoes().map(function(o){ return '<li>' + o + '</li>'; }).join('');
+  $('rgfEnt').innerHTML = entendaRgf(u);
 }
 function tabelaSerie(){
   var rows = S.E.slice().reverse().map(function(r){ var c = camaraDe(r);
@@ -698,6 +759,7 @@ function renderMensal(){
 /* ================= RREO ================= */
 function renderRREO(){
   var r = S.rreo; if (!r) return;
+  $('rreoEnt').innerHTML = entendaRreo(r);
   var esperado = r.p / 6 * 100;
   $('rMeta').innerHTML = '<b>' + esc(nomeUF(S.ente)) + '</b> · RREO do <b>' + r.label + '</b> (jan a ' + MESES[2*r.p-1] + ') · valores acumulados no ano. Referência linear para o período: ' + pct1(esperado) + ' do ano.';
   var h = '';
@@ -900,7 +962,6 @@ var TCE = [
   {k:'amort', g:4, n:'Amortização e refinanciamento da dívida (%)', fx:'Operações de crédito arrecadadas ÷ despesas totais empenhadas × 100', f:pct, dir:-1, get:function(x){ return p100(D(x).opCred, D(x).despTotal); }},
   {k:'encargos', g:4, n:'Encargos da dívida na despesa corrente (%)', fx:'Juros e encargos da dívida ÷ despesas correntes empenhadas × 100', f:pct, dir:-1, get:function(x){ return p100(D(x).juros, D(x).despCorr); }}
 ];
-function compIds(){ try { var v = JSON.parse(LS.get('siconfi_comp','null')); if (v && v.length) return v; } catch(e){} return PRESET.slice(); }
 var COMP = [];
 function renderChips(){
   if (S.gRgf) limpaGrupo('rgf'); if (S.gRreo) limpaGrupo('rreo');
@@ -1019,7 +1080,7 @@ function fichaHTML(x){
     h += '<tr class="sec"><td colspan="5">' + (gi + 1) + '. ' + g + '</td></tr>';
     TCE.filter(function(t){ return t.g === gi; }).forEach(function(t){
       var v = t.get(x), pf = perfil(t, v);
-      h += '<tr><td class="txt" title="' + esc(t.fx) + '">' + esc(t.n) + '<div class="note">' + esc(t.fx) + '</div></td><td>' + t.f(v) + '</td><td>' + t.f(S.padrao[t.k]) + '</td><td>' + varTxtP(pf) + '</td><td>' + chipP(pf, true) + '</td></tr>';
+      h += '<tr><td class="txt" title="' + esc(t.fx) + '">' + esc(t.n) + '<div class="note t-cid">' + esc(TCE_CID[t.k] || '') + '</div><div class="note t-est">' + esc(t.fx) + (TCE_CID[t.k] ? '. ' + esc(TCE_CID[t.k]) : '') + '</div></td><td>' + t.f(v) + '</td><td>' + t.f(S.padrao[t.k]) + '</td><td>' + varTxtP(pf) + '</td><td>' + chipP(pf, true) + '</td></tr>';
     });
   });
   return h + '</tbody></table>';
@@ -1047,6 +1108,7 @@ function renderComp(){
   $('cmpRank').innerHTML = '<table><thead><tr><th>#</th><th>Município</th><th>Nota</th>' + ['O','B','S','R','I'].map(function(k){ return '<th title="' + PERFIS[k].n + '">' + k + '</th>'; }).join('') + '</tr></thead><tbody>' +
     rk.map(function(r, i){ var en = BYID[r.c.id] || {nome:r.c.id}; var me = r.c.id === x.id; return '<tr' + (me ? ' style="background:#eaf2fb;font-weight:650"' : '') + '><td>' + (i + 1) + 'º</td><td class="txt">' + esc(en.nome) + (me ? ' ◀' : '') + '</td><td>' + (r.m == null ? '—' : nf2.format(r.m)) + '</td>' + ['O','B','S','R','I'].map(function(k){ return '<td>' + r.ct.c[k] + '</td>'; }).join('') + '</tr>'; }).join('') +
     '</tbody></table><p class="note">Nota média dos perfis de 1 (Insatisfatório) a 5 (Ótimo), calculada para cada município contra o mesmo padrão do grupo.</p>';
+  $('cmpEnt').innerHTML = entendaComp(x, e, rk, contagem(x)); $('cmpEntBox').hidden = false;
   $('cmpSub').textContent = 'Referência: ' + nomeUF(e) + ' · exercício ' + S.compAno + ' · grupo de ' + S.comp.length + ' municípios · metodologia ECG/TCE-RJ.';
   // matriz
   var head = '<tr><th>Indicador</th><th>Padrão</th>' + S.comp.map(function(c){ var en = BYID[c.id] || {nome:c.id}; return '<th>' + esc(en.nome) + '</th>'; }).join('') + '</tr>';
@@ -1276,25 +1338,164 @@ function pdfRreo(){
 function grupoRgfThen(fn){ var u = S.E[S.sel]; if (!u) return; var old = S.gRgf; grupoRgf(); var t = setInterval(function(){ if (S.gRgf && S.gRgf !== old){ clearInterval(t); fn(); } else if (!$('bGrpRgf').disabled && S.gRgf === old){ clearInterval(t); } }, 400); }
 function grupoRreoThen(fn){ var r = S.rreo; if (!r) return; var old = S.gRreo; grupoRreo(); var t = setInterval(function(){ if (S.gRreo && S.gRreo !== old){ clearInterval(t); fn(); } else if (!$('bGrpRreo').disabled && S.gRreo === old){ clearInterval(t); } }, 400); }
 
+/* ================= Perfis de linguagem e glossário ================= */
+var GLOS = {
+  'LRF': ['Lei de Responsabilidade Fiscal. É a lei que coloca limites para os gastos e as dívidas das prefeituras, dos estados e da União, para que não gastem mais do que podem pagar.', 'Lei Complementar nº 101/2000. Estabelece normas de finanças públicas voltadas à responsabilidade na gestão fiscal: limites de despesa com pessoal (arts. 18 a 23), de dívida (arts. 29 a 31), regras de transparência (arts. 48 a 59) e sanções.'],
+  'Siconfi': ['Sistema do Tesouro Nacional onde cada prefeitura envia seus relatórios de contas. Todos os números deste painel vêm de lá, do jeito que a prefeitura declarou.', 'Sistema de Informações Contábeis e Fiscais do Setor Público Brasileiro, mantido pela STN. Recebe RGF, RREO, DCA e MSC de todos os entes; os dados são públicos pela API de dados abertos.'],
+  'RGF': ['Relatório de Gestão Fiscal. A prefeitura publica a cada 4 meses (ou 6, nas cidades menores) para mostrar se está respeitando os limites de gastos com pessoal e de dívida.', 'Relatório de Gestão Fiscal (LRF, arts. 54 e 55). Quadrimestral, ou semestral na opção do art. 63. Anexo 1: despesa com pessoal; Anexo 2: dívida consolidada; Anexo 4: operações de crédito.'],
+  'RREO': ['Relatório Resumido da Execução Orçamentária. Publicado a cada 2 meses, mostra quanto a prefeitura arrecadou e gastou até ali no ano.', 'Relatório Resumido da Execução Orçamentária (CF, art. 165, §3º; LRF, arts. 52 e 53). Bimestral. O Anexo 14 é o demonstrativo simplificado com receitas, despesas, resultados e restos a pagar.'],
+  'DCA': ['Declaração das Contas Anuais. É o "balanço" do ano fechado: tudo o que entrou, saiu, o que a prefeitura tem e o que deve em 31 de dezembro.', 'Declaração de Contas Anuais (LRF, art. 51). Reúne os balanços orçamentário e patrimonial, despesa por função e demais anexos do exercício encerrado.'],
+  'MSC': ['Matriz de Saldos Contábeis. É a contabilidade da prefeitura mês a mês, conta por conta, enviada ao Tesouro.', 'Matriz de Saldos Contábeis (Portaria STN nº 896/2017 e atualizações). Saldos mensais por conta do PCASP e informações complementares (fonte de recursos, natureza da receita, função etc.).'],
+  'RCL': ['Receita Corrente Líquida. É o dinheiro que a prefeitura recebe de forma regular em 12 meses (impostos, repasses do estado e da União), descontando o que é obrigada a repassar. Serve de base para medir se os gastos estão dentro do limite.', 'Receita Corrente Líquida (LRF, art. 2º, IV): receitas correntes dos últimos 12 meses, deduzidas as contribuições dos servidores para o regime próprio, a compensação previdenciária e, nos municípios, as deduções previstas em lei.'],
+  'RCL ajustada': ['É a receita corrente líquida sem alguns repasses federais com destino certo (como emendas parlamentares). É sobre ela que se calcula o limite de gastos com pessoal.', 'RCL deduzida das transferências obrigatórias da União relativas a emendas individuais e de bancada (CF, art. 166-A, §1º, e art. 166, §16) e da assistência financeira para o piso dos agentes comunitários (CF, art. 198, §11).'],
+  'Despesa com pessoal': ['Tudo o que a prefeitura gasta com quem trabalha para ela: salários, encargos, aposentadorias e pensões, nos últimos 12 meses.', 'Despesa total com pessoal (DTP, LRF, art. 18): ativos, inativos e pensionistas, encargos e terceirização de mão de obra substitutiva, nos últimos 12 meses, deduzidas as despesas do art. 19, §1º (indenizações, inativos custeados com recursos vinculados, entre outras).'],
+  'Limite máximo': ['O teto que a lei permite gastar com pessoal: 54% da receita corrente líquida ajustada para a prefeitura e 6% para a Câmara.', 'LRF, art. 20, III: 54% da RCL para o Executivo municipal e 6% para o Legislativo. Ultrapassado, o excesso deve ser eliminado em dois quadrimestres (art. 23), com vedações do art. 23, §3º.'],
+  'Limite prudencial': ['Um sinal amarelo forte: 95% do teto (51,3% para a prefeitura). Acima dele, a prefeitura fica proibida de dar reajustes não obrigatórios, criar cargos e fazer novas contratações, com algumas exceções.', 'LRF, art. 22, parágrafo único: 95% do limite máximo. Acima dele, vedações como concessão de vantagens e reajustes (salvo revisão geral), criação de cargos, provimento (ressalvadas reposições em educação, saúde e segurança) e horas extras.'],
+  'Limite de alerta': ['Primeiro sinal amarelo: 90% do teto (48,6% para a prefeitura). Quando passa daqui, o Tribunal de Contas avisa a prefeitura.', 'LRF, art. 59, §1º, II: os Tribunais de Contas alertam o ente quando a despesa com pessoal ultrapassa 90% do limite.'],
+  'Dívida consolidada líquida': ['O que a prefeitura deve a longo prazo, descontado o dinheiro que tem em caixa e aplicações. A dívida não pode passar de 120% da receita corrente líquida.', 'Dívida consolidada (LRF, art. 29) deduzidas as disponibilidades de caixa, aplicações e demais haveres financeiros. Limite de 1,2 vez a RCL para municípios (Resolução do Senado nº 40/2001).'],
+  'Previsão de receita': ['Quanto a prefeitura esperava arrecadar no ano, segundo o orçamento aprovado pela Câmara (já com as atualizações feitas durante o ano).', 'Previsão atualizada da receita: valor da LOA ajustado por reestimativas ao longo do exercício (Lei nº 4.320/1964, art. 51 e seguintes).'],
+  'Receita realizada': ['O dinheiro que de fato entrou nos cofres da prefeitura até a data do relatório.', 'Receita arrecadada no período (regime de caixa para a receita orçamentária, Lei nº 4.320/1964, art. 35, I).'],
+  'Dotação': ['O valor que o orçamento autoriza a prefeitura a gastar em cada área durante o ano.', 'Dotação atualizada: crédito orçamentário da LOA somado aos créditos adicionais e deduzidas as anulações.'],
+  'Empenho': ['O primeiro passo de um gasto: a prefeitura reserva o dinheiro e se compromete a pagar por algo que contratou.', 'Primeiro estágio da despesa (Lei nº 4.320/1964, art. 58): ato que cria para o Estado obrigação de pagamento pendente ou não de implemento de condição.'],
+  'Liquidação': ['O segundo passo: a prefeitura confere que o serviço foi feito ou que o produto foi entregue.', 'Segundo estágio (Lei nº 4.320/1964, art. 63): verificação do direito adquirido pelo credor com base nos títulos e documentos comprobatórios.'],
+  'Pagamento': ['O último passo: o dinheiro sai de fato para quem prestou o serviço ou entregou o produto.', 'Terceiro estágio (Lei nº 4.320/1964, art. 64): ordem de pagamento e entrega do numerário ao credor.'],
+  'Resultado orçamentário': ['A diferença entre o que entrou e o que foi gasto no ano. Se positivo, sobrou dinheiro; se negativo, gastou-se mais do que se arrecadou.', 'Receita realizada menos despesa executada. No RREO, até o 5º bimestre usa-se a despesa liquidada e no 6º a despesa empenhada.'],
+  'Resultado primário': ['Mostra se a prefeitura consegue pagar suas despesas do dia a dia sem contar juros e empréstimos.', 'Diferença entre receitas e despesas primárias (excluídos juros, encargos, amortizações e operações de crédito). Apurado "acima da linha" no RREO.'],
+  'Restos a pagar': ['Contas de um ano que ficaram para ser pagas no ano seguinte. "Processados" são serviços já entregues e conferidos; "não processados" ainda não foram conferidos.', 'Despesas empenhadas e não pagas até 31/12 (Lei nº 4.320/1964, art. 36). Processados: liquidadas; não processados: não liquidadas. A LRF, art. 42, veda contrair obrigação nos dois últimos quadrimestres do mandato sem disponibilidade de caixa.'],
+  'Per capita': ['O valor dividido pelo número de moradores da cidade. Ajuda a comparar cidades de tamanhos diferentes.', 'Valor dividido pela população estimada do município (no painel, a informada no cadastro do Siconfi).'],
+  'PIB per capita': ['A riqueza produzida na cidade em um ano dividida pelo número de moradores. É usado aqui para encontrar cidades com economia parecida.', 'Produto Interno Bruto municipal a preços correntes (IBGE, tabela 5938) dividido pela população.'],
+  'Mesorregião': ['Um conjunto de cidades vizinhas com características parecidas, definido pelo IBGE, como o Norte de Minas ou o Sul Fluminense.', 'Divisão regional do IBGE (1990) que agrupa microrregiões com características socioeconômicas semelhantes.'],
+  'Padrão do grupo': ['A média das cidades comparadas. Cada indicador da cidade é comparado com essa média para saber se ela está melhor ou pior que as parecidas.', 'Média aritmética do índice no grupo de comparação (metodologia ECG/TCE-RJ). A variação é (índice ÷ padrão − 1) × 100.'],
+  'Perfil (Insatisfatório a Ótimo)': ['Uma nota de 1 a 5 que diz se a cidade está muito pior (Insatisfatório), pior (Razoável), parecida (Satisfatório), melhor (Bom) ou muito melhor (Ótimo) que a média das cidades comparadas.', 'Classificação da ECG/TCE-RJ pela variação em relação ao padrão: até ±10% Satisfatório; 10% a 30% Bom ou Razoável; acima de 30% Ótimo ou Insatisfatório, conforme o sentido desejável do índice. Notas de 1 a 5.'],
+  'Liquidez': ['Mostra se a prefeitura tem dinheiro em caixa para pagar as contas de curto prazo. Acima de 1, tem mais dinheiro do que contas a pagar.', 'Relações entre disponibilidades ou ativo circulante e obrigações (passivo circulante, restos a pagar, depósitos restituíveis). Índices acima de 1 indicam cobertura.'],
+  'Endividamento': ['Quanto do patrimônio da prefeitura está comprometido com dívidas e obrigações.', 'Passivo exigível (circulante e não circulante) em relação ao ativo total, apurado no balanço patrimonial da DCA.'],
+  'Receitas próprias': ['O dinheiro que a própria prefeitura arrecada, como IPTU, ISS e taxas, sem contar repasses do estado e da União.', 'Receitas correntes deduzidas das transferências correntes recebidas. Indicam a autonomia financeira do ente.'],
+  'Transferências': ['Dinheiro repassado à prefeitura pelo estado ou pela União, como o ICMS, o FPM e os royalties do petróleo.', 'Receitas de transferências correntes e de capital (categoria 1.7 e 2.4 da natureza de receita), constitucionais, legais ou voluntárias.']
+};
+function g(termo, txt){ return '<span class="g" data-g="' + esc(termo) + '">' + esc(txt || termo) + '</span>'; }
+function tom(){ return LS.get('pf_tom', '') || ({estudante:'estudante', servidor:'servidor', ente:'servidor'}[LS.get('pf_perfil','')] || 'cidadao'); }
+function aplicaTom(t){
+  if (t) LS.set('pf_tom', t);
+  t = tom();
+  document.body.classList.remove('tom-cidadao', 'tom-estudante', 'tom-servidor');
+  document.body.classList.add('tom-' + t);
+  [].forEach.call(document.querySelectorAll('#tomSel button'), function(b){ b.classList.toggle('on', b.getAttribute('data-tom') === t); });
+  if (t === 'servidor' && location.hash === '#glossario') abrir('comparar');
+  $('gPop').hidden = true;
+}
+function renderGlos(){
+  var q = ($('qGlos').value || '').toLowerCase(), est = tom() === 'estudante';
+  $('lGlos').innerHTML = Object.keys(GLOS).sort(function(a, b){ return a.localeCompare(b, 'pt'); }).filter(function(k){ return !q || (k + ' ' + GLOS[k][0] + ' ' + GLOS[k][1]).toLowerCase().indexOf(q) >= 0; })
+    .map(function(k){ return '<dt>' + esc(k) + '</dt><dd>' + esc(GLOS[k][est ? 1 : 0]) + (est ? '' : '') + '</dd>'; }).join('') || '<p class="note">Nenhum termo encontrado.</p>';
+}
+function mostraGlos(el){
+  var k = el.getAttribute('data-g'), d = GLOS[k]; if (!d || tom() === 'servidor') return;
+  var p = $('gPop'), r = el.getBoundingClientRect();
+  p.innerHTML = '<b>' + esc(k) + '</b><p>' + esc(d[tom() === 'estudante' ? 1 : 0]) + '</p><a data-v-glos="1">Ver o glossário completo</a>';
+  p.hidden = false;
+  var x = Math.min(window.innerWidth - p.offsetWidth - 12, Math.max(12, r.left + window.scrollX));
+  p.style.left = x + 'px'; p.style.top = (r.bottom + window.scrollY + 6) + 'px';
+}
+
+/* ---------- Explicações por perfil ---------- */
+var TCE_CID = {
+  recPc:'Quanto a prefeitura arrecadou por morador. Mais dinheiro por habitante significa mais capacidade de oferecer serviços.',
+  iptuPc:'Quanto se arrecadou de IPTU (imposto sobre imóveis) por morador. Mostra o esforço da própria prefeitura em cobrar seus impostos.',
+  issPc:'Quanto se arrecadou de ISS (imposto sobre serviços) por morador. Reflete a atividade econômica da cidade e a cobrança do imposto.',
+  daPc:'Quanto a prefeitura recuperou, por morador, de impostos atrasados que estavam em cobrança (dívida ativa).',
+  despPc:'Quanto a prefeitura gastou por morador no ano.',
+  invPc:'Quanto foi investido por morador em obras e equipamentos (escolas, ruas, postos de saúde).',
+  saudePc:'Quanto foi gasto com saúde por morador.',
+  educPc:'Quanto foi gasto com educação por morador.',
+  legPc:'Quanto custou a Câmara de Vereadores por morador. Aqui, quanto menor, melhor.',
+  liqImed:'Se a prefeitura tem dinheiro em caixa para pagar as contas de curto prazo. Acima de 1, o caixa cobre as contas.',
+  liqRpp:'Se o dinheiro em caixa cobre as contas de anos anteriores já conferidas e ainda não pagas.',
+  liqDdo:'Se o caixa cobre valores de terceiros que a prefeitura guarda e terá de devolver (como cauções e retenções).',
+  liqCorr:'Se o que a prefeitura tem a receber e em caixa no curto prazo cobre o que deve no curto prazo.',
+  liqSeca:'Igual à anterior, mas sem contar materiais em estoque, que não viram dinheiro rápido.',
+  liqGeral:'Se tudo o que a prefeitura tem a receber, no curto e no longo prazo, cobre tudo o que deve.',
+  solv:'Se todo o patrimônio da prefeitura é suficiente para cobrir todas as suas dívidas.',
+  endiv:'Quanto do patrimônio está comprometido com dívidas. Quanto menor, melhor.',
+  compExig:'Quanto das dívidas vence no curto prazo. Muitas dívidas vencendo logo pressionam o caixa.',
+  imobPL:'Quanto do patrimônio próprio está aplicado em bens permanentes (prédios, terrenos, equipamentos).',
+  compCorr:'Quanto das receitas do dia a dia foi usado para pagar as despesas do dia a dia. Acima de 100%, gastou mais do que arrecadou nessa parte.',
+  compCap:'Quanto das receitas para investimento (como empréstimos e repasses para obras) foi usado em investimentos e pagamento de dívidas.',
+  pesDesp:'Que parte de tudo o que a prefeitura gastou foi com pessoal.',
+  invDesp:'Que parte de tudo o que a prefeitura gastou foi com investimentos. Quanto maior, melhor.',
+  pesRcl:'Que parte da receita regular da prefeitura foi para pagamento de pessoal.',
+  proprias:'Que parte da receita vem da própria cidade (IPTU, ISS, taxas), sem depender de repasses.',
+  execRec:'Quanto a prefeitura conseguiu arrecadar em relação ao que tinha previsto no orçamento.',
+  execDesp:'Quanto do orçamento autorizado foi efetivamente usado.',
+  resExec:'Se a prefeitura gastou mais ou menos do que arrecadou no ano. Acima de 100%, gastou mais.',
+  autonomia:'Se a prefeitura conseguiria pagar suas despesas só com o dinheiro que ela mesma arrecada.',
+  amort:'Quanto das despesas foi coberto com empréstimos. Quanto menor, menos a cidade depende de crédito.',
+  encargos:'Quanto das despesas do dia a dia foi para pagar juros da dívida. Quanto menor, melhor.'
+};
+var ST_CID = {ok:'Está dentro da faixa considerada segura.', alerta:'Já passou do nível de alerta, e o Tribunal de Contas avisa a prefeitura.', prud:'Passou do limite prudencial. Enquanto estiver acima dele, a prefeitura fica proibida de dar reajustes não obrigatórios, criar cargos e contratar novos servidores, com algumas exceções em saúde, educação e segurança.', exc:'Passou do teto da lei. A prefeitura tem dois quadrimestres para voltar ao limite e, enquanto isso, sofre restrições, como não poder receber transferências voluntárias.', na:''};
+var ST_EST = {ok:'abaixo do limite de alerta (LRF, art. 59, §1º, II)', alerta:'acima do limite de alerta (90% do máximo; LRF, art. 59, §1º, II)', prud:'acima do limite prudencial (95% do máximo), sujeito às vedações do art. 22, parágrafo único, da LRF', exc:'acima do limite máximo do art. 20, sujeito à recondução em dois quadrimestres e às vedações do art. 23', na:'sem dado'};
+function reais100(p){ return 'R$ ' + nf2.format(p); }
+function entendaRgf(u){
+  if (!u || u.dtpPct == null) return '';
+  var st = statusDe(u.dtpPct, u.limMax, true), cid, est, d = u.dclPct;
+  cid = '<p><b>Gastos com pessoal.</b> De cada R$ 100 da ' + g('RCL ajustada', 'receita regular da prefeitura') + ', ' + reais100(u.dtpPct) + ' foram para salários, encargos, aposentadorias e pensões nos últimos 12 meses. A ' + g('LRF', 'lei') + ' permite até ' + reais100(u.limMax) + '. ' + ST_CID[st.c] + '</p>';
+  if (d != null) cid += '<p><b>Dívida.</b> ' + (d < 0 ? 'A prefeitura tem mais dinheiro em caixa e aplicações do que dívidas de longo prazo.' : 'A ' + g('Dívida consolidada líquida', 'dívida de longo prazo') + ', descontado o dinheiro em caixa, equivale a ' + pct(d) + ' da receita regular de um ano. O limite é 120%.') + '</p>';
+  cid += '<p class="note">Dados do ' + g('RGF') + ' do ' + esc(u.label) + ', como a prefeitura declarou ao ' + g('Siconfi') + '.</p>';
+  est = '<p><b>' + g('Despesa com pessoal', 'Despesa total com pessoal') + '.</b> ' + pct(u.dtpPct) + ' da ' + g('RCL ajustada') + ' (' + mi(u.dtp) + ' sobre ' + mi(u.rclAj) + '), ' + ST_EST[st.c] + '. ' + g('Limite máximo') + ': ' + pct(u.limMax) + ' (LRF, art. 20, III); ' + g('Limite prudencial', 'prudencial') + ': ' + pct(u.limMax * .95) + '; ' + g('Limite de alerta', 'alerta') + ': ' + pct(u.limMax * .9) + '.</p>';
+  if (u.bruta != null) est += '<p>Composição: despesa bruta de ' + mi(u.bruta) + ', deduções do art. 19, §1º, de ' + mi(u.naoComp) + ' (das quais ' + mi(u.inatVinc) + ' de inativos e pensionistas custeados com recursos vinculados).</p>';
+  if (d != null) est += '<p><b>' + g('Dívida consolidada líquida') + '.</b> ' + pct(d) + ' da RCL ajustada, ante o limite de 120% (Resolução do Senado nº 40/2001).</p>';
+  est += '<p class="note">Fonte: ' + g('RGF') + ', Anexos 1 e 2, ' + esc(u.label) + ' (' + esc(u.tipo) + '), via API do ' + g('Siconfi') + '.</p>';
+  return '<div class="t-cid">' + cid + '</div><div class="t-est">' + est + '</div>';
+}
+function entendaRreo(r){
+  if (!r || r.rec == null) return '';
+  var mes = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'][2 * r.p - 1], esp = r.p / 6 * 100, rp = div(r.rec, r.prev) * 100, sup = r.sup;
+  var cid = '<p>De janeiro a ' + mes + ', a prefeitura arrecadou ' + mi(r.rec) + ', o que corresponde a ' + pct1(rp) + ' do que ' + g('Previsão de receita', 'esperava arrecadar no ano inteiro') + '. Pela proporção do tempo já passado, o esperado seria algo perto de ' + pct1(esp) + '.</p>';
+  cid += '<p>No mesmo período, a prefeitura ' + g('Liquidação', 'teve gastos já conferidos') + ' de ' + mi(r.liq) + '. ' + (sup == null ? '' : (sup >= 0 ? 'Até aqui, entrou mais dinheiro do que saiu: ' + g('Resultado orçamentário', 'sobraram') + ' ' + mi(sup) + '.' : 'Até aqui, saiu mais dinheiro do que entrou: ' + g('Resultado orçamentário', 'faltaram') + ' ' + mi(-sup) + '.')) + '</p>';
+  if (r.rpp && r.rpn) cid += '<p>Ainda há ' + mi((r.rpp.saldo || 0) + (r.rpn.saldo || 0)) + ' em ' + g('Restos a pagar', 'contas de anos anteriores') + ' esperando pagamento.</p>';
+  cid += '<p class="note">Dados do ' + g('RREO') + ' do ' + esc(r.label) + ', como a prefeitura declarou ao ' + g('Siconfi') + '.</p>';
+  var est = '<p><b>Receita.</b> ' + g('Receita realizada') + ' de ' + mi(r.rec) + ', ' + pct1(rp) + ' da ' + g('Previsão de receita', 'previsão atualizada') + ' (' + mi(r.prev) + '); referência linear para o ' + r.p + 'º bimestre: ' + pct1(esp) + '.</p>';
+  est += '<p><b>Despesa.</b> ' + g('Empenho', 'Empenhada') + ' ' + mi(r.emp) + ' (' + pct1(div(r.emp, r.dot) * 100) + ' da ' + g('Dotação', 'dotação atualizada') + '), ' + g('Liquidação', 'liquidada') + ' ' + mi(r.liq) + ', ' + g('Pagamento', 'paga') + ' ' + mi(r.pag) + ' (Lei nº 4.320/1964, arts. 58 a 64).</p>';
+  est += '<p><b>' + g('Resultado orçamentário') + '.</b> ' + mi(sup) + ', apurado pela despesa ' + (r.p === 6 ? 'empenhada' : 'liquidada') + '. ' + g('Resultado primário') + ': ' + mi(r.prim) + '.</p>';
+  est += '<p class="note">Fonte: ' + g('RREO') + ', Anexo 14 (LRF, arts. 52 e 53), ' + esc(r.label) + ', via API do ' + g('Siconfi') + '.</p>';
+  return '<div class="t-cid">' + cid + '</div><div class="t-est">' + est + '</div>';
+}
+function entendaComp(x, e, rk, ct){
+  var pos = 0; rk.forEach(function(r, i){ if (r.c.id === x.id) pos = i + 1; });
+  var melhor = ct.c.O + ct.c.B, pior = ct.c.I + ct.c.R;
+  var cid = '<p>Comparamos ' + esc(e.nome) + ' com ' + (rk.length - 1) + ' cidades parecidas (da mesma ' + g('Mesorregião', 'região') + ', com tamanho e ' + g('PIB per capita', 'economia') + ' próximos), usando as contas de ' + S.compAno + '.</p>';
+  cid += '<p>Em <b>' + melhor + '</b> dos ' + ct.n + ' indicadores, a cidade está melhor que a ' + g('Padrão do grupo', 'média do grupo') + '; em <b>' + ct.c.S + '</b>, está parecida; e em <b>' + pior + '</b>, está pior. No ranking geral, ficou em <b>' + pos + 'º lugar</b> entre ' + rk.length + '.</p>';
+  cid += '<p class="note">Cada indicador recebe uma ' + g('Perfil (Insatisfatório a Ótimo)', 'nota de 1 a 5') + '. Toque nos termos sublinhados para entender o que significam.</p>';
+  var est = '<p>Metodologia da ECG/TCE-RJ aplicada a ' + ct.n + ' índices do exercício de ' + S.compAno + ' (' + g('DCA') + ', ' + g('RREO') + ' do 6º bimestre e ' + g('MSC') + ' de dezembro). ' + g('Padrão do grupo') + ': média aritmética dos ' + rk.length + ' municípios; ' + g('Perfil (Insatisfatório a Ótimo)', 'perfil') + ' pela variação em relação ao padrão.</p>';
+  est += '<p>Resultado: nota média ' + (ct.media == null ? '—' : nf2.format(ct.media)) + ', com ' + ct.c.O + ' Ótimo, ' + ct.c.B + ' Bom, ' + ct.c.S + ' Satisfatório, ' + ct.c.R + ' Razoável e ' + ct.c.I + ' Insatisfatório; ' + pos + 'º no ranking do grupo. A média é sensível a valores extremos: confira a matriz antes de concluir.</p>';
+  return '<div class="t-cid">' + cid + '</div><div class="t-est">' + est + '</div>';
+}
+
 /* ================= Identificação e registro de uso ================= */
 var SETORES = ['Controladoria / controle interno','Contabilidade','Fazenda / receita','Planejamento e orçamento','Gestão de pessoas','Previdência (RPPS)','Gabinete','Procuradoria / jurídico','Poder Legislativo (Câmara)','Tribunal de Contas','Ensino e pesquisa','Outro'];
 var ORG_EXTRA = ['Estado do Rio de Janeiro','União (órgão federal)','Outro / sem vínculo com ente público'];
 var SESSAO = (function(){ try { var x = sessionStorage.getItem('pf_sessao'); if (!x){ x = Math.random().toString(36).slice(2, 12); sessionStorage.setItem('pf_sessao', x); } return x; } catch(e){ return Math.random().toString(36).slice(2, 12); } })();
-function ident(){ var o = LS.get('pf_orgao',''); return o ? {orgao:o, setor:LS.get('pf_setor','')} : null; }
+function ident(){ var o = LS.get('pf_orgao',''); return o ? {orgao:o, setor:LS.get('pf_setor',''), perfil:LS.get('pf_perfil','ente')} : null; }
+var EST = 'Estudante · ', ANON = 'Não identificado', CID = 'Cidadão';
+function perfilDe(orgao){ return !orgao || orgao === ANON ? 'anonimo' : (orgao.indexOf(EST) === 0 ? 'estudante' : (orgao.indexOf(CID) === 0 ? 'cidadao' : 'ente')); }
+function perfilSel(){ var r = document.querySelector('input[name="idPerf"]:checked'); return r ? r.value : 'cidadao'; }
+function mostraPerfil(){ var v = perfilSel(); $('idBoxCid').hidden = v !== 'cidadao'; $('idBoxEnte').hidden = v !== 'ente'; $('idBoxEst').hidden = v !== 'estudante'; $('idBoxAnon').hidden = v !== 'anonimo'; }
 function mostraIdent(){
   var id = ident();
   $('idTag').textContent = id ? '· ' + id.orgao + (id.setor ? ' · ' + id.setor : '') : '';
-  $('cIdent').textContent = id ? 'Registrado como: ' + id.orgao + (id.setor ? ' · ' + id.setor : ' (setor não informado)') + '.' : 'Ainda não informado.';
+  $('cIdent').textContent = id ? 'Registrado como: ' + id.orgao + (id.setor ? ' · ' + id.setor : '') + '.' : 'Ainda não informado.';
 }
 function preencheOrg(){
   $('dlSet').innerHTML = SETORES.map(function(t){ return '<option value="' + esc(t) + '">'; }).join('');
-  var rj = ENTES.filter(function(e){ return e.uf === 'RJ'; }), out = ENTES.filter(function(e){ return e.uf !== 'RJ'; });
-  $('dlOrg').innerHTML = ORG_EXTRA.concat(rj.concat(out).map(nomeUF)).map(function(t){ return '<option value="' + esc(t) + '">'; }).join('');
+  $('dlCur').innerHTML = ['Ciências Contábeis','Administração','Administração Pública','Economia','Direito','Gestão Pública','Ciências Sociais','Engenharia','Pós-graduação / especialização','Mestrado','Doutorado'].map(function(t){ return '<option value="' + esc(t) + '">'; }).join('');
+  $('dlOrg').innerHTML = ORG_EXTRA.map(function(t){ return '<option value="' + esc(t) + '">'; }).join('');
 }
 function abreIdent(){
-  var id = ident() || {orgao:'', setor:''};
-  $('idOrg').value = id.orgao; $('idSet').value = id.setor;
-  $('ident').classList.add('on'); setTimeout(function(){ $('idOrg').focus(); }, 30);
+  var id = ident() || {orgao:'', setor:'', perfil:'cidadao'}, pf = id.orgao ? perfilDe(id.orgao) : 'cidadao';
+  document.querySelector('input[name="idPerf"][value="' + pf + '"]').checked = true;
+  $('idOrg').value = pf === 'ente' ? id.orgao : ''; $('idSet').value = pf === 'ente' ? id.setor : '';
+  $('idMora').value = pf === 'cidadao' && id.orgao.indexOf(CID + ' · ') === 0 ? id.orgao.slice(CID.length + 3) : ''; $('idUni').value = pf === 'estudante' ? id.orgao.slice(EST.length) : ''; $('idCur').value = pf === 'estudante' ? id.setor : '';
+  mostraPerfil();
+  $('ident').classList.add('on'); setTimeout(function(){ var f = {cidadao:'idMora', estudante:'idUni', ente:'idOrg'}[pf]; if (f) $(f).focus(); }, 30);
 }
 var pendentes = [];
 function registrar(acao, det){
@@ -1310,7 +1511,7 @@ registrar.envia = function(ev){ var b = apiBase(); if (!b) return; try { fetch(b
 
 /* ---------- Aba Uso (restrita) ---------- */
 var USO = [];
-var ACOES = {acesso:'Abriu o painel', municipio:'Carregou município', aba:'Abriu aba', periodo_rgf:'Trocou período do RGF', periodo_rreo:'Trocou bimestre do RREO', msc:'Consultou a MSC', comparacao:'Rodou comparação TCE-RJ', exportacao:'Exportou planilha', copia:'Copiou tabela', relatorio:'Gerou relatório para impressão', sugestao:'Pediu sugestão de grupo', grupo_rgf:'Comparou RGF com o grupo', grupo_rreo:'Comparou RREO com o grupo'};
+var ACOES = {acesso:'Abriu o painel', municipio:'Carregou município', aba:'Abriu aba', periodo_rgf:'Trocou período do RGF', periodo_rreo:'Trocou bimestre do RREO', msc:'Consultou a MSC', comparacao:'Rodou comparação TCE-RJ', exportacao:'Exportou planilha', copia:'Copiou tabela', relatorio:'Gerou relatório para impressão', tom:'Trocou a linguagem (Ver como)', sugestao:'Pediu sugestão de grupo', grupo_rgf:'Comparou RGF com o grupo', grupo_rreo:'Comparou RREO com o grupo'};
 function lerUso(){
   var chave = $('uChave').value.trim() || LS.get('pf_admin','');
   if (!chave){ $('uMsg').textContent = 'Informe a chave de administrador.'; return; }
@@ -1338,11 +1539,13 @@ function detTxt(x){
 }
 function renderUso(){
   var u = USO, pesq = u.filter(function(x){ return x.acao !== 'aba'; });
-  var ses = {}, orgs = {}, ents = {};
-  u.forEach(function(x){ if (x.sessao) ses[x.sessao] = 1; orgs[x.orgao] = 1; if (x.ente_id) ents[x.ente_id] = 1; });
+  var ses = {}, orgs = {}, ents = {}, sp = {cidadao:{}, ente:{}, estudante:{}, anonimo:{}};
+  u.forEach(function(x){ if (x.sessao){ ses[x.sessao] = 1; sp[perfilDe(x.orgao)][x.sessao] = 1; } orgs[x.orgao] = 1; if (x.ente_id) ents[x.ente_id] = 1; });
+  function visPerf(k){ return Object.keys(sp[k]).length; }
   $('uKpis').innerHTML = kpiS('Pesquisas', nf0.format(pesq.length), 'sem contar trocas de aba') + kpiS('Visitas', nf0.format(Object.keys(ses).length), 'sessões distintas') +
-    kpiS('Entes usuários', nf0.format(Object.keys(orgs).length), 'informados na entrada') + kpiS('Municípios pesquisados', nf0.format(Object.keys(ents).length), '');
-  $('uOrg').innerHTML = tabCont('Ente · setor', conta(u, function(x){ return x.orgao + (x.setor ? ' · ' + x.setor : ''); }));
+    kpiS('Visitas de cidadãos', nf0.format(visPerf('cidadao')), 'acompanham o próprio município') + kpiS('Visitas de servidores', nf0.format(visPerf('ente')), 'atuam em ente público') + kpiS('Visitas de estudantes', nf0.format(visPerf('estudante')), 'universidade e curso informados') +
+    kpiS('Visitas sem identificação', nf0.format(visPerf('anonimo')), 'preferiram não se identificar') + kpiS('Municípios pesquisados', nf0.format(Object.keys(ents).length), '');
+  $('uOrg').innerHTML = tabCont('Ente ou instituição · setor ou curso', conta(u, function(x){ return x.orgao + (x.setor ? ' · ' + x.setor : ''); }));
   $('uEnt').innerHTML = tabCont('Município', conta(pesq, function(x){ return x.ente_nome; }));
   $('uAcao').innerHTML = tabCont('Ação', conta(u, function(x){ return (ACOES[x.acao] || x.acao) + (x.acao === 'aba' && x.detalhe && x.detalhe.aba ? ': ' + x.detalhe.aba : ''); }));
   $('uLog').innerHTML = '<table><tr><th>Data e hora</th><th>Ente · setor</th><th>Ação</th><th>Município</th><th>Detalhe</th></tr>' + pesq.slice(0, 300).map(function(x){
@@ -1365,16 +1568,17 @@ function usoCsv(){
 }
 
 /* ================= Navegação e eventos ================= */
-var VIEWS = ['painel','mensal','rreo','dca','msc','comparar','relatorios','config','uso'];
+var VIEWS = ['painel','mensal','rreo','dca','msc','comparar','relatorios','config','uso','glossario'];
 function abrir(v){
   Array.prototype.forEach.call(document.querySelectorAll('#tabs a'), function(a){ a.classList.toggle('on', a.getAttribute('data-v') === v); });
   Array.prototype.forEach.call(document.querySelectorAll('.view'), function(s){ s.classList.toggle('on', s.id === 'v-' + v); });
   if (location.hash !== '#' + v) history.replaceState(null, '', '#' + v);
   Object.keys(charts).forEach(function(k){ if (charts[k]) charts[k].resize(); });
   if (v === 'msc' && S.ente && !S.msc && $('mMes').value) consultarMsc();
+  if (v === 'glossario') renderGlos();
 }
 $('tabs').addEventListener('click', function(ev){ var v = ev.target.getAttribute('data-v'); if (v){ abrir(v); if (v !== 'uso') registrar('aba', {aba:v}); } });
-$('fBusca').addEventListener('submit', function(ev){ ev.preventDefault(); var e = findEnte($('qEnte').value); if (e){ carregar(e); registrar('municipio', {origem:'busca'}); } else msg('Escolha um município da lista (ex.: "Campos dos Goytacazes - RJ").'); });
+$('fBusca').addEventListener('submit', function(ev){ ev.preventDefault(); var e = findEnte($('qEnte').value); if (e){ carregar(e); registrar('municipio', {origem:'busca'}); } else msg('Escolha um município da lista que aparece enquanto você digita (nome e UF, como "Nome do Município - UF").'); });
 $('bAdd').addEventListener('click', function(){ var e = findEnte($('qComp').value); if (e && COMP.indexOf(e.id) < 0){ COMP.push(e.id); renderChips(); } $('qComp').value = ''; });
 $('qComp').addEventListener('keydown', function(ev){ if (ev.key === 'Enter'){ ev.preventDefault(); $('bAdd').click(); } });
 $('chips').addEventListener('click', function(ev){ var id = ev.target.getAttribute('data-rm'); if (id){ COMP = COMP.filter(function(x){ return String(x) !== id; }); renderChips(); } });
@@ -1400,15 +1604,25 @@ $('bPdfRgf').addEventListener('click', function(){ pdfRgf(); registrar('relatori
 $('bPdfRreo').addEventListener('click', function(){ pdfRreo(); registrar('relatorio', {tipo:'PDF execução orçamentária comparada'}); });
 $('bPdfComp').addEventListener('click', function(){ relComp(); registrar('relatorio', {tipo:'PDF análise comparativa'}); });
 $('bUso').addEventListener('click', lerUso);
+ligaSugestao('qEnte', 'dlEntes'); ligaSugestao('qComp', 'dlComp'); ligaSugestao('idMora', 'dlMora'); ligaSugestao('idOrg', 'dlOrg', ORG_EXTRA);
+[].forEach.call(document.querySelectorAll('#tomSel button'), function(b){ b.addEventListener('click', function(){ aplicaTom(b.getAttribute('data-tom')); registrar('tom', {tipo:b.textContent}); }); });
+$('qGlos').addEventListener('input', renderGlos);
+document.addEventListener('click', function(ev){ var t = ev.target; if (t.classList && t.classList.contains('g')){ ev.stopPropagation(); mostraGlos(t); return; } if (t.getAttribute && t.getAttribute('data-v-glos')){ $('gPop').hidden = true; abrir('glossario'); window.scrollTo(0, 0); return; } if (!$('gPop').contains(t)) $('gPop').hidden = true; });
 $('bUsoCsv').addEventListener('click', usoCsv);
 $('uDias').addEventListener('change', function(){ if (LS.get('pf_admin','')) lerUso(); });
 $('bIdent').addEventListener('click', abreIdent);
+[].forEach.call(document.querySelectorAll('input[name="idPerf"]'), function(r){ r.addEventListener('change', function(){ mostraPerfil(); var f = {cidadao:'idMora', ente:'idOrg', estudante:'idUni'}[perfilSel()]; if (f) $(f).focus(); }); });
 $('idTag').addEventListener('click', abreIdent);
 $('fIdent').addEventListener('submit', function(ev){
   ev.preventDefault();
-  var o = $('idOrg').value.trim().slice(0, 120), st = $('idSet').value.trim().slice(0, 80);
-  if (!o){ $('idOrg').focus(); return; }
-  var novo = !ident(); LS.set('pf_orgao', o); LS.set('pf_setor', st);
+  var pf = perfilSel(), o, st;
+  if (pf === 'ente'){ o = $('idOrg').value.trim().slice(0, 120); st = $('idSet').value.trim().slice(0, 80); if (!o){ $('idOrg').focus(); return; } }
+  else if (pf === 'estudante'){ var un = $('idUni').value.trim().slice(0, 100); st = $('idCur').value.trim().slice(0, 80); if (!un){ $('idUni').focus(); return; } o = EST + un; }
+  else if (pf === 'cidadao'){ var mo = $('idMora').value.trim().slice(0, 100), me = mo ? findEnte(mo) : null; o = me ? CID + ' · ' + nomeUF(me) : (mo ? CID + ' · ' + mo : CID); st = ''; }
+  else { o = ANON; st = ''; }
+  var novo = !ident(); LS.set('pf_orgao', o); LS.set('pf_setor', st); LS.set('pf_perfil', pf); LS.set('pf_tom', ''); aplicaTom();
+  var mora = pf === 'cidadao' && o.indexOf(CID + ' · ') === 0 ? findEnte(o.slice(CID.length + 3)) : null;
+  if (mora && (!S.ente || novo)) carregar(mora);
   $('ident').classList.remove('on'); mostraIdent();
   if (novo) descarrega();
 });
@@ -1438,13 +1652,13 @@ function iniciar(){
     $('selInd').innerHTML = TCE.map(function(t, i){ return '<option value="' + i + '">' + esc(t.n) + '</option>'; }).join('');
     var Y = new Date().getFullYear(); $('cmpAno').innerHTML = [Y-1, Y-2].map(function(a){ return '<option>' + a + '</option>'; }).join('');
     $('metodo').innerHTML = METODO;
-    var e = GRUPO_URL ? BYID[GRUPO_URL.ref] : null;
+    var id0 = ident(), e = GRUPO_URL ? BYID[GRUPO_URL.ref] : (id0 && id0.orgao.indexOf(CID + ' · ') === 0 ? findEnte(id0.orgao.slice(CID.length + 3)) : null);
     if (e) return carregar(e);
     semMunicipio();
   }).catch(erro);
 }
 $('cProxy').value = LS.get('siconfi_proxy', DEFAULT_PROXY); $('cNome').value = LS.get('siconfi_nome',''); $('cMat').value = LS.get('siconfi_mat','');
-modo(); mostraIdent();
+modo(); mostraIdent(); aplicaTom();
 var h0 = location.hash.replace('#',''); if (VIEWS.indexOf(h0) >= 0 && h0 !== 'msc') abrir(h0); else abrir('comparar');
 if (h0 === 'uso' && LS.get('pf_admin','')) lerUso();
 window.addEventListener('hashchange', function(){ if (location.hash === '#uso'){ abrir('uso'); $('ident').classList.remove('on'); if (LS.get('pf_admin','')) lerUso(); } });
