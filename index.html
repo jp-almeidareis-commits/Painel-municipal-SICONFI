@@ -77,6 +77,9 @@ code{background:#eef0f4;padding:1px 5px;border-radius:4px;font-size:12px}
 #print table{font-size:10.5px;margin-bottom:6px}
 #print th{position:static;background:#eee}
 #print .ass{margin-top:40px}
+#print .fontes{font-size:9.5px;word-break:break-all}
+#print .fontes a{color:#1f5fa8}
+.gHead{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}.gHead h2{margin:0}
 #ident{position:fixed;inset:0;background:rgba(15,42,74,.55);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
 #ident.on{display:flex}
 #ident .box{background:#fff;border-radius:12px;max-width:520px;width:100%;padding:22px 24px;box-shadow:0 12px 40px rgba(0,0,0,.25)}
@@ -101,6 +104,9 @@ code{background:#eef0f4;padding:1px 5px;border-radius:4px;font-size:12px}
   <div class="row" style="margin-bottom:10px"><label>Período <select id="pSel"></select></label></div>
   <p class="meta" id="pMeta">Carregando…</p>
   <div class="grid" id="kpis"></div>
+  <div class="card" style="margin-bottom:12px"><div class="gHead"><h2>Comparação com o grupo</h2><div class="row"><button class="sec" id="bGrpRgf">Comparar com o grupo</button><button class="sec" id="bPdfRgf">Exportar PDF</button></div></div>
+    <p class="note" id="gRgfMeta">Compara o Executivo com o mesmo grupo da Análise comparativa, no período selecionado acima.</p>
+    <div class="two"><div class="chart" id="gRgfBox" style="height:220px"><canvas id="chGRgf"></canvas></div><div class="tbl" id="tGRgf"></div></div></div>
   <div class="two">
     <div class="card"><h2>Despesa com pessoal do Executivo (% da RCL ajustada)</h2><div class="chart"><canvas id="chSerie"></canvas></div></div>
     <div class="card"><h2>Observações automáticas</h2><ul class="obs" id="obs"></ul><p class="note">Sinais gerados por regras simples sobre os valores declarados. Confirme nas notas explicativas antes de concluir.</p></div>
@@ -119,6 +125,9 @@ code{background:#eef0f4;padding:1px 5px;border-radius:4px;font-size:12px}
   <div class="row" style="margin-bottom:10px"><label>Bimestre <select id="rSel"></select></label></div>
   <p class="meta" id="rMeta">Carregando…</p>
   <div class="grid" id="rKpis"></div>
+  <div class="card" style="margin-bottom:12px"><div class="gHead"><h2>Comparação com o grupo</h2><div class="row"><button class="sec" id="bGrpRreo">Comparar com o grupo</button><button class="sec" id="bPdfRreo">Exportar PDF</button></div></div>
+    <p class="note" id="gRreoMeta">Compara a execução orçamentária com o mesmo grupo da Análise comparativa, no bimestre selecionado acima.</p>
+    <div class="two"><div class="chart" id="gRreoBox" style="height:220px"><canvas id="chGRreo"></canvas></div><div class="tbl" id="tGRreo"></div></div></div>
   <div class="two">
     <div class="card"><h2>Receita corrente líquida mês a mês (R$ milhões)</h2><div class="chart"><canvas id="chRcl"></canvas></div></div>
     <div class="card"><h2>Composição da receita corrente (12 meses)</h2><div class="tbl" id="tRec"></div></div>
@@ -157,7 +166,7 @@ code{background:#eef0f4;padding:1px 5px;border-radius:4px;font-size:12px}
 <section class="view" id="v-comparar">
   <div class="card">
     <div class="cmpHead"><h2>Análise comparativa</h2><p class="note" id="cmpSub" style="margin:0 0 12px">Compare o município com outros de perfil parecido, pelos índices das demonstrações contábeis na metodologia da ECG/TCE-RJ.</p></div>
-    <div class="row"><div style="flex:1;min-width:240px"><input type="search" id="qComp" list="dlEntes" placeholder="Adicionar município ao grupo…" autocomplete="off"></div><button class="sec" id="bAdd">Adicionar</button><label>Sugestão por <select id="cmpCrit"><option value="eq">Região, população e PIB</option><option value="reg">Mesma região</option><option value="pop">População</option><option value="pib">PIB per capita</option></select></label><button class="sec" id="bSugerir">Sugerir 5 semelhantes</button><button class="sec" id="bLimpar">Limpar</button><label>Exercício <select id="cmpAno"></select></label><button id="bComparar">Analisar</button></div>
+    <div class="row"><div style="flex:1;min-width:240px"><input type="search" id="qComp" list="dlEntes" placeholder="Adicionar município ao grupo…" autocomplete="off"></div><button class="sec" id="bAdd">Adicionar</button><label>Sugestão por <select id="cmpCrit"><option value="eq">Região, população e PIB</option><option value="reg">Mesma região</option><option value="pop">População</option><option value="pib">PIB per capita</option></select></label><button class="sec" id="bSugerir">Sugerir 5 semelhantes</button><button class="sec" id="bLimpar">Limpar</button><label>Exercício <select id="cmpAno"></select></label><button id="bComparar">Analisar</button><button class="sec" id="bPdfComp">Exportar PDF</button></div>
     <div class="chips" id="chips"></div>
     <p class="note" id="sugNota"></p>
     <p class="note">Análise das demonstrações contábeis pela metodologia da ECG/TCE-RJ: cada índice é comparado com a média do grupo (padrão) e classificado de Insatisfatório a Ótimo. O município carregado no painel é o de referência e entra sempre no grupo.</p>
@@ -255,6 +264,7 @@ var DEFAULT_PROXY = 'https://bdcwhalqakgtiajikoad.supabase.co/functions/v1/sicon
 var DEFAULT_ENTE = 3301009; // Campos dos Goytacazes
 var PRESET = [3301009,3302403,3305000,3304524,3300704,3303302,3303906,3306305,3303401,3305802];
 var SUG = {};
+var GRUPO_URL = (function(){ try { var q = new URLSearchParams(location.search), en = +q.get('ente'), g = (q.get('grupo') || '').split(',').map(Number).filter(function(x){ return x > 0; }); return en ? {ref:en, ids:g, ano:+q.get('ano') || null} : null; } catch(e){ return null; } })();
 var MESES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
 var MESES_L = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
 
@@ -552,7 +562,7 @@ function dcaAno(id, ano){ return api('dca',{an_exercicio:ano, id_ente:id}).then(
 /* ================= Estado e carga ================= */
 var S = {ente:null, E:[], L:[], R:[], sel:0, rreo:null, dca:[], ents:[], comp:[], msc:null};
 function carregar(ente){
-  S.ente = ente; S.E = []; S.L = []; S.rreo = null; S.dca = []; S.msc = null; S.ents = [];
+  S.ente = ente; limpaGrupo('rgf'); limpaGrupo('rreo'); S.E = []; S.L = []; S.rreo = null; S.dca = []; S.msc = null; S.ents = [];
   LS.set('siconfi_ente', ente.id);
   sugerir(ente);
   $('qEnte').value = nomeUF(ente);
@@ -588,6 +598,7 @@ function carregar(ente){
 }
 function carregarRREO(i){
   var e = S.R[i]; if (!e) return null;
+  limpaGrupo('rreo');
   $('rSel').value = String(i); $('rMeta').textContent = 'Carregando o RREO do ' + e.p + 'º bimestre de ' + e.ano + '…';
   return rreo(S.ente.id, e).then(function(it){ S.rreo = parseRREO(it, e); renderRREO(); }).catch(function(err){ $('rMeta').textContent = 'Falha ao ler o RREO: ' + (err.message || err); });
 }
@@ -892,6 +903,7 @@ var TCE = [
 function compIds(){ try { var v = JSON.parse(LS.get('siconfi_comp','null')); if (v && v.length) return v; } catch(e){} return PRESET.slice(); }
 var COMP = [];
 function renderChips(){
+  if (S.gRgf) limpaGrupo('rgf'); if (S.gRreo) limpaGrupo('rreo');
   $('chips').innerHTML = COMP.map(function(id){ var e = BYID[id]; return '<span' + (SUG[id] ? ' title="' + esc(SUG[id]) + '"' : '') + '>' + esc(e ? nomeUF(e) : id) + '<b data-rm="' + id + '" title="Remover">×</b></span>'; }).join('');
   LS.set('siconfi_comp', JSON.stringify(COMP));
 }
@@ -914,6 +926,13 @@ function ibgeUF(cuf){
 }
 function sugerir(ente, crit){
   if (!ente) return Promise.resolve();
+  if (GRUPO_URL && GRUPO_URL.ref === ente.id && GRUPO_URL.ids.length > 1){
+    var gu = GRUPO_URL; GRUPO_URL = null; SUG = {};
+    COMP = gu.ids.filter(function(id){ return BYID[id]; }); if (COMP.indexOf(ente.id) < 0) COMP.unshift(ente.id);
+    if (gu.ano && [].some.call($('cmpAno').options, function(o){ return +o.value === gu.ano; })) $('cmpAno').value = String(gu.ano);
+    renderChips(); $('sugNota').textContent = 'Grupo aberto a partir de um link de relatório. Use "Sugerir 5 semelhantes" para trocar.';
+    comparar(); return Promise.resolve();
+  }
   crit = crit || $('cmpCrit').value;
   var cuf = String(ente.id).slice(0, 2);
   $('sugNota').textContent = 'Buscando municípios semelhantes no IBGE…';
@@ -1140,9 +1159,122 @@ function relComp(){
   h += '<h2>Ficha do município</h2>' + fichaHTML(x);
   h += '<h2>Matriz do grupo</h2>' + $('tComp').innerHTML;
   h += '<h2>Metodologia</h2>' + METODO;
+  var a = S.compAno, it = [];
+  S.comp.forEach(function(c){ var n = nomeId(c.id);
+    it.push(['DCA ' + a + ' · ' + n, linkApi('dca', {an_exercicio:a, id_ente:c.id})]);
+    it.push(['RREO 6º bim. ' + a + ' (Anexo 14) · ' + n, linkApi('rreo', {an_exercicio:a, nr_periodo:6, co_tipo_demonstrativo:'RREO', id_ente:c.id, no_anexo:'RREO-Anexo 14'})]);
+    it.push(['MSC dez. ' + a + ' (classe 6) · ' + n, linkApi('msc_orcamentaria', {id_ente:c.id, an_referencia:a, me_referencia:12, co_tipo_matriz:'MSCC', classe_conta:6, id_tv:'ending_balance'})]);
+  });
+  h += blocoFontes('comparar', it);
   h += assinatura();
   imprimir(h);
 }
+
+/* ================= Comparação do grupo no RGF e no RREO ================= */
+var SICONFI_API = 'https://apidatalake.tesouro.gov.br/ords/siconfi/tt/';
+function linkApi(path, q){ return SICONFI_API + path + '?' + Object.keys(q).map(function(k){ return k + '=' + encodeURIComponent(q[k]); }).join('&'); }
+function limpaGrupo(k){
+  if (k === 'rgf'){ S.gRgf = null; $('tGRgf').innerHTML = ''; $('gRgfMeta').textContent = 'Compara o Executivo com o mesmo grupo da Análise comparativa, no período selecionado acima.'; if (charts.chGRgf){ charts.chGRgf.destroy(); delete charts.chGRgf; } }
+  else { S.gRreo = null; $('tGRreo').innerHTML = ''; $('gRreoMeta').textContent = 'Compara a execução orçamentária com o mesmo grupo da Análise comparativa, no bimestre selecionado acima.'; if (charts.chGRreo){ charts.chGRreo.destroy(); delete charts.chGRreo; } }
+}
+function grupoIds(){ var me = S.ente ? S.ente.id : null, g = COMP.slice(); if (me && g.indexOf(me) < 0) g.unshift(me); return g; }
+function linkPainel(aba){
+  var q = '?ente=' + (S.ente ? S.ente.id : '') + '&grupo=' + grupoIds().join(',');
+  if (aba === 'comparar' && S.compAno) q += '&ano=' + S.compAno;
+  return location.origin + location.pathname + q + '#' + aba;
+}
+function nomeId(id){ var e = BYID[id]; return e ? nomeUF(e) : String(id); }
+function medianaDe(a){ a = a.filter(function(v){ return v != null && isFinite(v); }).sort(function(x, y){ return x - y; }); if (!a.length) return null; var m = Math.floor(a.length / 2); return a.length % 2 ? a[m] : (a[m-1] + a[m]) / 2; }
+function rgfPeer(id, u){
+  function tenta(tipo){ var e = {ano:u.ano, per:u.per, p:u.p, tipo:tipo, poder:'E'}; return rgf(id, e).catch(function(){ return []; }).then(function(it){ return {e:e, it:it || []}; }); }
+  var t1 = u.tipo || 'RGF', t2 = t1 === 'RGF' ? 'RGF Simplificado' : 'RGF';
+  return tenta(t1).then(function(r){ return r.it.length ? r : tenta(t2); }).then(function(r){
+    if (!r.it.length) return {id:id, vazio:true};
+    var x = parseRGF(r.it, r.e); x.id = id; x.q = {an_exercicio:r.e.ano, in_periodicidade:r.e.per, nr_periodo:r.e.p, co_tipo_demonstrativo:r.e.tipo, co_esfera:'M', co_poder:'E', id_ente:id};
+    return x;
+  });
+}
+function grupoRgf(){
+  var u = S.E[S.sel]; if (!u) return;
+  var ids = grupoIds(); if (ids.length < 2){ $('gRgfMeta').textContent = 'Monte um grupo na Análise comparativa primeiro.'; return; }
+  $('bGrpRgf').disabled = true; $('gRgfMeta').textContent = 'Lendo o RGF do ' + u.label + ' de ' + ids.length + ' municípios…';
+  pool(ids.map(function(id){ return function(){ return rgfPeer(id, u); }; }), 3).then(function(rs){
+    S.gRgf = {u:u, rows:rs.map(function(x, i){ return x && !x.erro ? x : {id:ids[i], vazio:true}; })};
+    renderGrupoRgf();
+  }).catch(erro).then(function(){ $('bGrpRgf').disabled = false; });
+}
+function renderGrupoRgf(){
+  var g = S.gRgf; if (!g) return;
+  var me = S.ente.id, ok = g.rows.filter(function(x){ return !x.vazio && x.dtpPct != null; });
+  var med = medianaDe(ok.map(function(x){ return x.dtpPct; })), medDcl = medianaDe(ok.map(function(x){ return x.dclPct; }));
+  var ord = ok.slice().sort(function(a, b){ return b.dtpPct - a.dtpPct; });
+  $('gRgfMeta').innerHTML = 'Executivo · RGF do <b>' + esc(g.u.label) + '</b> · mediana do grupo: pessoal <b>' + pct(med) + '</b> da RCL ajustada, dívida consolidada líquida ' + pct(medDcl) + '. Limites do Executivo: alerta 48,60%, prudencial 51,30%, máximo 54,00%.';
+  $('tGRgf').innerHTML = '<table><thead><tr><th>Município</th><th>Pessoal % RCL aj.</th><th>Situação</th><th>Pessoal per capita</th><th>RCL aj. per capita</th><th>DCL % RCL aj.</th></tr></thead><tbody>' +
+    ord.map(function(x){ var st = statusDe(x.dtpPct, x.limMax, true), pop = (BYID[x.id] || {}).pop;
+      return '<tr' + (x.id === me ? ' style="background:#eaf2fb;font-weight:650"' : '') + '><td class="txt">' + esc(nomeId(x.id)) + (x.id === me ? ' ◀' : '') + '</td><td><b>' + pct(x.dtpPct) + '</b></td><td><span class="chip s-' + st.c + '">' + st.t + '</span></td><td>' + (pop ? brl(x.dtp / pop) : '—') + '</td><td>' + (pop ? brl(x.rclAj / pop) : '—') + '</td><td>' + pct(x.dclPct) + '</td></tr>'; }).join('') +
+    g.rows.filter(function(x){ return x.vazio || x.dtpPct == null; }).map(function(x){ return '<tr><td class="txt">' + esc(nomeId(x.id)) + '</td><td colspan="5" class="note">Sem RGF do Executivo neste período (pode entregar em outra periodicidade)</td></tr>'; }).join('') +
+    '</tbody></table>';
+  $('gRgfBox').style.height = Math.max(200, ord.length * 30 + 50) + 'px';
+  mkChart('chGRgf', {type:'bar', data:{labels:ord.map(function(x){ return (BYID[x.id] || {}).nome + (x.id === me ? ' ◀' : ''); }), datasets:[{label:'Pessoal % RCL ajustada', data:ord.map(function(x){ return x.dtpPct; }), backgroundColor:ord.map(function(x){ return COR[statusDe(x.dtpPct, x.limMax, true).c]; })}]},
+    options:{indexAxis:'y', maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{callbacks:{label:function(c){ return pct(c.parsed.x); }}}}, scales:{x:{beginAtZero:true, suggestedMax:56, ticks:{callback:function(v){ return v + '%'; }}}}}});
+}
+function grupoRreo(){
+  var r = S.rreo; if (!r) return;
+  var ids = grupoIds(); if (ids.length < 2){ $('gRreoMeta').textContent = 'Monte um grupo na Análise comparativa primeiro.'; return; }
+  $('bGrpRreo').disabled = true; $('gRreoMeta').textContent = 'Lendo o RREO do ' + r.label + ' de ' + ids.length + ' municípios…';
+  pool(ids.map(function(id){ return function(){
+    var q = {ano:r.ano, p:r.p, tipo:'RREO'};
+    return rreo(id, q, 'RREO-Anexo 14').then(function(it){ var x = parseRREO(it || [], q); x.id = id; x.vazio = x.rec == null; x.q = {an_exercicio:r.ano, nr_periodo:r.p, co_tipo_demonstrativo:'RREO', id_ente:id, no_anexo:'RREO-Anexo 14'}; return x; });
+  }; }), 3).then(function(rs){
+    S.gRreo = {r:r, rows:rs.map(function(x, i){ return x && !x.erro ? x : {id:ids[i], vazio:true}; })};
+    renderGrupoRreo();
+  }).catch(erro).then(function(){ $('bGrpRreo').disabled = false; });
+}
+function supPct(x){ return x.sup != null && x.rec ? x.sup / x.rec * 100 : null; }
+function renderGrupoRreo(){
+  var g = S.gRreo; if (!g) return;
+  var me = S.ente.id, ok = g.rows.filter(function(x){ return !x.vazio; });
+  var ord = ok.slice().sort(function(a, b){ return (supPct(b) == null ? -1e9 : supPct(b)) - (supPct(a) == null ? -1e9 : supPct(a)); });
+  var medRec = medianaDe(ok.map(function(x){ return div(x.rec, x.prev) * 100; })), medSup = medianaDe(ok.map(supPct));
+  $('gRreoMeta').innerHTML = 'RREO do <b>' + esc(g.r.label) + '</b>, valores acumulados no ano · mediana do grupo: receita realizada ' + pct1(medRec) + ' da previsão, resultado orçamentário ' + pct1(medSup) + ' da receita. Resultado = receita realizada − despesa ' + (g.r.p === 6 ? 'empenhada' : 'liquidada') + '.';
+  $('tGRreo').innerHTML = '<table><thead><tr><th>Município</th><th>Receita realizada</th><th>% da previsão</th><th>Receita per capita</th><th>Liquidado % dotação</th><th>Resultado orçamentário</th><th>% da receita</th></tr></thead><tbody>' +
+    ord.map(function(x){ var pop = (BYID[x.id] || {}).pop, sp = supPct(x);
+      return '<tr' + (x.id === me ? ' style="background:#eaf2fb;font-weight:650"' : '') + '><td class="txt">' + esc(nomeId(x.id)) + (x.id === me ? ' ◀' : '') + '</td><td>' + mi(x.rec) + '</td><td>' + pct1(div(x.rec, x.prev) * 100) + '</td><td>' + (pop ? brl(x.rec / pop) : '—') + '</td><td>' + pct1(div(x.liq, x.dot) * 100) + '</td><td class="' + vcls(x.sup) + '">' + mi(x.sup) + '</td><td class="' + vcls(sp) + '">' + pct1(sp) + '</td></tr>'; }).join('') +
+    g.rows.filter(function(x){ return x.vazio; }).map(function(x){ return '<tr><td class="txt">' + esc(nomeId(x.id)) + '</td><td colspan="6" class="note">Sem RREO neste bimestre</td></tr>'; }).join('') +
+    '</tbody></table>';
+  $('gRreoBox').style.height = Math.max(200, ord.length * 30 + 50) + 'px';
+  mkChart('chGRreo', {type:'bar', data:{labels:ord.map(function(x){ return (BYID[x.id] || {}).nome + (x.id === me ? ' ◀' : ''); }), datasets:[{label:'Resultado orçamentário (% da receita)', data:ord.map(supPct), backgroundColor:ord.map(function(x){ var v = supPct(x); return v == null ? COR.na : (v >= 0 ? COR.ok : COR.exc); })}]},
+    options:{indexAxis:'y', maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{callbacks:{label:function(c){ return pct1(c.parsed.x) + ' da receita'; }}}}, scales:{x:{ticks:{callback:function(v){ return v + '%'; }}}}}});
+}
+
+/* ---------- PDF: fontes e links ---------- */
+function aLink(u, txt){ return '<a href="' + esc(u) + '">' + esc(txt || u) + '</a>'; }
+function blocoFontes(aba, itens){
+  var h = '<h2>Fontes e links</h2><div class="fontes"><p><b>Reabrir esta análise no painel:</b><br>' + aLink(linkPainel(aba)) + '</p>';
+  h += '<p><b>Dados de origem (API de dados abertos do Siconfi · Tesouro Nacional):</b></p><ul>' + itens.map(function(i){ return '<li>' + esc(i[0]) + ': ' + aLink(i[1]) + '</li>'; }).join('') + '</ul>';
+  h += '<p>Consulta pública do Siconfi: ' + aLink('https://siconfi.tesouro.gov.br/siconfi/index.jsf') + ' · Documentação da API: ' + aLink('https://apidatalake.tesouro.gov.br/docs/siconfi/') + '</p>';
+  if (aba === 'comparar' && Object.keys(SUG).length) h += '<p>Grupo sugerido com dados do IBGE: ' + aLink('https://servicodados.ibge.gov.br/api/v1/localidades/estados/' + String(S.ente.id).slice(0, 2) + '/municipios') + ' e ' + aLink('https://servicodados.ibge.gov.br/api/v3/agregados/5938/periodos/-1/variaveis/37?localidades=N6[N3[' + String(S.ente.id).slice(0, 2) + ']]') + '</p>';
+  return h + '<p>Documento gerado pelo Painel Fiscal Municipal em ' + new Date().toLocaleString('pt-BR') + '. Os valores são os declarados pelos municípios no Siconfi e podem ser retificados depois desta data.</p></div>';
+}
+function pdfRgf(){
+  if (!S.gRgf) return grupoRgfThen(pdfRgf);
+  var g = S.gRgf, hoje = new Date().toLocaleDateString('pt-BR');
+  var h = '<h1>Gestão fiscal comparada · ' + esc(nomeUF(S.ente)) + '</h1><p>RGF do Poder Executivo, ' + esc(g.u.label) + '. Grupo de comparação: ' + esc(g.rows.map(function(x){ return nomeId(x.id); }).join(', ')) + '. Consulta em ' + hoje + '.</p>';
+  h += '<p>' + $('gRgfMeta').innerHTML + '</p>' + $('tGRgf').innerHTML;
+  h += '<h2>Município de referência</h2><ul>' + observacoes().map(function(o){ return '<li>' + o + '</li>'; }).join('') + '</ul>';
+  h += blocoFontes('painel', g.rows.filter(function(x){ return x.q; }).map(function(x){ return ['RGF ' + nomeId(x.id), linkApi('rgf', x.q)]; }));
+  h += assinatura(); imprimir(h);
+}
+function pdfRreo(){
+  if (!S.gRreo) return grupoRreoThen(pdfRreo);
+  var g = S.gRreo, hoje = new Date().toLocaleDateString('pt-BR');
+  var h = '<h1>Execução orçamentária comparada · ' + esc(nomeUF(S.ente)) + '</h1><p>RREO do ' + esc(g.r.label) + ' (Anexo 14, valores acumulados). Grupo de comparação: ' + esc(g.rows.map(function(x){ return nomeId(x.id); }).join(', ')) + '. Consulta em ' + hoje + '.</p>';
+  h += '<p>' + $('gRreoMeta').innerHTML + '</p>' + $('tGRreo').innerHTML;
+  h += blocoFontes('rreo', g.rows.filter(function(x){ return x.q; }).map(function(x){ return ['RREO ' + nomeId(x.id), linkApi('rreo', x.q)]; }));
+  h += assinatura(); imprimir(h);
+}
+function grupoRgfThen(fn){ var u = S.E[S.sel]; if (!u) return; var old = S.gRgf; grupoRgf(); var t = setInterval(function(){ if (S.gRgf && S.gRgf !== old){ clearInterval(t); fn(); } else if (!$('bGrpRgf').disabled && S.gRgf === old){ clearInterval(t); } }, 400); }
+function grupoRreoThen(fn){ var r = S.rreo; if (!r) return; var old = S.gRreo; grupoRreo(); var t = setInterval(function(){ if (S.gRreo && S.gRreo !== old){ clearInterval(t); fn(); } else if (!$('bGrpRreo').disabled && S.gRreo === old){ clearInterval(t); } }, 400); }
 
 /* ================= Identificação e registro de uso ================= */
 var SETORES = ['Controladoria / controle interno','Contabilidade','Fazenda / receita','Planejamento e orçamento','Gestão de pessoas','Previdência (RPPS)','Gabinete','Procuradoria / jurídico','Poder Legislativo (Câmara)','Tribunal de Contas','Ensino e pesquisa','Outro'];
@@ -1178,7 +1310,7 @@ registrar.envia = function(ev){ var b = apiBase(); if (!b) return; try { fetch(b
 
 /* ---------- Aba Uso (restrita) ---------- */
 var USO = [];
-var ACOES = {acesso:'Abriu o painel', municipio:'Carregou município', aba:'Abriu aba', periodo_rgf:'Trocou período do RGF', periodo_rreo:'Trocou bimestre do RREO', msc:'Consultou a MSC', comparacao:'Rodou comparação TCE-RJ', exportacao:'Exportou planilha', copia:'Copiou tabela', relatorio:'Gerou relatório para impressão', sugestao:'Pediu sugestão de grupo'};
+var ACOES = {acesso:'Abriu o painel', municipio:'Carregou município', aba:'Abriu aba', periodo_rgf:'Trocou período do RGF', periodo_rreo:'Trocou bimestre do RREO', msc:'Consultou a MSC', comparacao:'Rodou comparação TCE-RJ', exportacao:'Exportou planilha', copia:'Copiou tabela', relatorio:'Gerou relatório para impressão', sugestao:'Pediu sugestão de grupo', grupo_rgf:'Comparou RGF com o grupo', grupo_rreo:'Comparou RREO com o grupo'};
 function lerUso(){
   var chave = $('uChave').value.trim() || LS.get('pf_admin','');
   if (!chave){ $('uMsg').textContent = 'Informe a chave de administrador.'; return; }
@@ -1252,7 +1384,7 @@ $('bLimpar').addEventListener('click', function(){ COMP = []; SUG = {}; $('sugNo
 $('bComparar').addEventListener('click', function(){ comparar(); if (COMP.length >= 2) registrar('comparacao', {ano:+$('cmpAno').value, grupo:COMP.map(function(id){ return BYID[id] ? nomeUF(BYID[id]) : String(id); })}); });
 $('selInd').addEventListener('change', graficoComp);
 $('mAno').addEventListener('change', mesesMsc);
-['pSel','mSel'].forEach(function(id){ $(id).addEventListener('change', function(){ S.sel = +this.value; $('pSel').value = $('mSel').value = this.value; renderPainel(); renderMensal(); registrar('periodo_rgf', {periodo:this.options[this.selectedIndex].text}); }); });
+['pSel','mSel'].forEach(function(id){ $(id).addEventListener('change', function(){ S.sel = +this.value; $('pSel').value = $('mSel').value = this.value; limpaGrupo('rgf'); renderPainel(); renderMensal(); registrar('periodo_rgf', {periodo:this.options[this.selectedIndex].text}); }); });
 $('rSel').addEventListener('change', function(){ carregarRREO(+this.value); registrar('periodo_rreo', {periodo:this.options[this.selectedIndex].text}); });
 $('bMsc').addEventListener('click', function(){ consultarMsc(); registrar('msc', {ano:+$('mAno').value, mes:+$('mMes').value, classe:+$('mClasse').value, comparacao:$('mCmp').options[$('mCmp').selectedIndex] ? $('mCmp').options[$('mCmp').selectedIndex].text : ''}); });
 $('mPoder').addEventListener('change', function(){ if (S.msc){ renderMsc(); renderFontes(); } });
@@ -1262,6 +1394,11 @@ Array.prototype.forEach.call(document.querySelectorAll('[data-x]'), function(b){
 Array.prototype.forEach.call(document.querySelectorAll('[data-c]'), function(b){ b.addEventListener('click', function(){ copiar(b.getAttribute('data-c')); registrar('copia', {tipo:b.textContent.trim()}); }); });
 $('bRelEnte').addEventListener('click', function(){ relEnte(); registrar('relatorio', {tipo:'Relatório do município'}); });
 $('bRelComp').addEventListener('click', function(){ relComp(); registrar('relatorio', {tipo:'Relatório comparativo', grupo:COMP.map(function(id){ return BYID[id] ? nomeUF(BYID[id]) : String(id); })}); });
+$('bGrpRgf').addEventListener('click', function(){ grupoRgf(); registrar('grupo_rgf', {periodo:S.E[S.sel] ? S.E[S.sel].label : ''}); });
+$('bGrpRreo').addEventListener('click', function(){ grupoRreo(); registrar('grupo_rreo', {periodo:S.rreo ? S.rreo.label : ''}); });
+$('bPdfRgf').addEventListener('click', function(){ pdfRgf(); registrar('relatorio', {tipo:'PDF gestão fiscal comparada'}); });
+$('bPdfRreo').addEventListener('click', function(){ pdfRreo(); registrar('relatorio', {tipo:'PDF execução orçamentária comparada'}); });
+$('bPdfComp').addEventListener('click', function(){ relComp(); registrar('relatorio', {tipo:'PDF análise comparativa'}); });
 $('bUso').addEventListener('click', lerUso);
 $('bUsoCsv').addEventListener('click', usoCsv);
 $('uDias').addEventListener('change', function(){ if (LS.get('pf_admin','')) lerUso(); });
@@ -1283,17 +1420,27 @@ function modo(){
   var b = apiBase();
   $('modo').innerHTML = location.hostname === 'apidatalake.tesouro.gov.br' ? 'Modo direto: página aberta no domínio da própria API.' : (b ? 'Usando o proxy <code>' + esc(b) + '</code>.' : 'Nenhum proxy configurado.');
 }
+function semMunicipio(){
+  var t = 'Escolha um município no campo de busca, no alto da página, e clique em Carregar.';
+  $('qEnte').value = '';
+  ['pMeta','rMeta','dMeta','mMeta'].forEach(function(id){ $(id).textContent = t; });
+  $('tFicha').innerHTML = '<p class="note">' + t + ' O painel sugere 5 municípios semelhantes e faz a análise comparativa automaticamente.</p>';
+  $('sugNota').textContent = '';
+  $('cmpSub').textContent = 'Compare um município com outros de perfil parecido, pelos índices das demonstrações contábeis na metodologia da ECG/TCE-RJ. ' + t;
+  setTimeout(function(){ if (!$('ident').classList.contains('on')) $('qEnte').focus(); }, 300);
+}
 function iniciar(){
   if (!apiBase()){ erro(new Error('SEM_PROXY')); return; }
   msg('');
   loadEntes().then(function(){
     preencheOrg();
-    COMP = compIds(); renderChips();
+    COMP = []; renderChips();
     $('selInd').innerHTML = TCE.map(function(t, i){ return '<option value="' + i + '">' + esc(t.n) + '</option>'; }).join('');
     var Y = new Date().getFullYear(); $('cmpAno').innerHTML = [Y-1, Y-2].map(function(a){ return '<option>' + a + '</option>'; }).join('');
     $('metodo').innerHTML = METODO;
-    var id = +LS.get('siconfi_ente', DEFAULT_ENTE), e = BYID[id] || BYID[DEFAULT_ENTE];
-    return carregar(e);
+    var e = GRUPO_URL ? BYID[GRUPO_URL.ref] : null;
+    if (e) return carregar(e);
+    semMunicipio();
   }).catch(erro);
 }
 $('cProxy').value = LS.get('siconfi_proxy', DEFAULT_PROXY); $('cNome').value = LS.get('siconfi_nome',''); $('cMat').value = LS.get('siconfi_mat','');
