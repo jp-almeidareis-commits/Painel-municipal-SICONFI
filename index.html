@@ -51,6 +51,8 @@ tr.sec td{background:#f3f5f9;font-weight:650;color:#33405a}
 tr.pico td{background:#fff7e6}
 tr.me td{background:#eaf2fb;font-weight:600}
 tr.click{cursor:pointer}tr.click:hover td{background:#f4f8fd}
+.dest{margin:0;padding-left:18px}.dest li{margin:6px 0}.dest b{color:var(--ink)}
+.cmpHead h2{font-size:19px;margin:0 0 4px}
 .pf{display:inline-block;min-width:20px;text-align:center;padding:1px 7px;border-radius:9px;color:#fff;font-size:11px;font-weight:650}
 .pos{color:var(--ok)}.neg{color:var(--exc)}
 .tbl{overflow:auto;max-height:560px}
@@ -91,7 +93,7 @@ code{background:#eef0f4;padding:1px 5px;border-radius:4px;font-size:12px}
   <div><h1>Painel Fiscal Municipal</h1><div class="sub">Dados abertos do Siconfi · Tesouro Nacional <span id="idTag" title="Alterar identificação"></span></div></div>
   <form class="search" id="fBusca"><input type="search" id="qEnte" list="dlEntes" placeholder="Município, ex.: Campos dos Goytacazes - RJ" autocomplete="off"><datalist id="dlEntes"></datalist><button>Carregar</button></form>
 </header>
-<nav id="tabs"><a data-v="painel" class="on">Gestão fiscal (RGF)</a><a data-v="mensal">Pessoal mês a mês</a><a data-v="rreo">Execução orçamentária (RREO)</a><a data-v="dca">Balanço anual (DCA)</a><a data-v="msc">Contabilidade (MSC)</a><a data-v="comparar">Comparar (TCE-RJ)</a><a data-v="relatorios">Relatórios e exportação</a><a data-v="config">Configurações</a></nav>
+<nav id="tabs"><a data-v="comparar" class="on">Análise comparativa</a><a data-v="painel">Gestão fiscal (RGF)</a><a data-v="mensal">Pessoal mês a mês</a><a data-v="rreo">Execução orçamentária (RREO)</a><a data-v="dca">Balanço anual (DCA)</a><a data-v="msc">Contabilidade (MSC)</a><a data-v="relatorios">Relatórios e exportação</a><a data-v="config">Configurações</a></nav>
 <main>
 <div id="msg"></div>
 
@@ -154,12 +156,17 @@ code{background:#eef0f4;padding:1px 5px;border-radius:4px;font-size:12px}
 
 <section class="view" id="v-comparar">
   <div class="card">
+    <div class="cmpHead"><h2>Análise comparativa</h2><p class="note" id="cmpSub" style="margin:0 0 12px">Compare o município com outros de perfil parecido, pelos índices das demonstrações contábeis na metodologia da ECG/TCE-RJ.</p></div>
     <div class="row"><div style="flex:1;min-width:240px"><input type="search" id="qComp" list="dlEntes" placeholder="Adicionar município ao grupo…" autocomplete="off"></div><button class="sec" id="bAdd">Adicionar</button><label>Sugestão por <select id="cmpCrit"><option value="eq">Região, população e PIB</option><option value="reg">Mesma região</option><option value="pop">População</option><option value="pib">PIB per capita</option></select></label><button class="sec" id="bSugerir">Sugerir 5 semelhantes</button><button class="sec" id="bLimpar">Limpar</button><label>Exercício <select id="cmpAno"></select></label><button id="bComparar">Analisar</button></div>
     <div class="chips" id="chips"></div>
     <p class="note" id="sugNota"></p>
     <p class="note">Análise das demonstrações contábeis pela metodologia da ECG/TCE-RJ: cada índice é comparado com a média do grupo (padrão) e classificado de Insatisfatório a Ótimo. O município carregado no painel é o de referência e entra sempre no grupo.</p>
   </div>
   <div class="grid" id="cmpResumo" style="margin-top:12px"></div>
+  <div class="two eq" style="margin-top:12px">
+    <div class="card"><h2>Pontos fortes e de atenção</h2><div id="cmpDest"><p class="note">Aparecem depois da análise.</p></div></div>
+    <div class="card"><h2>Ranking do grupo pela nota média</h2><div class="tbl" id="cmpRank"><p class="note">Aparece depois da análise.</p></div></div>
+  </div>
   <div class="two">
     <div class="card"><h2 id="fichaTit">Ficha do município</h2><div class="tbl" id="tFicha" style="max-height:900px"><p class="note">Monte o grupo, escolha o exercício e clique em Analisar.</p></div></div>
     <div class="card"><div class="row" style="margin-bottom:8px"><select id="selInd" style="max-width:100%"></select></div><div class="chart" id="cmpChartBox"><canvas id="chComp"></canvas></div><p class="note" id="cmpNota"></p></div>
@@ -173,7 +180,7 @@ code{background:#eef0f4;padding:1px 5px;border-radius:4px;font-size:12px}
     <div class="card">
       <h2>Relatórios para impressão / PDF</h2>
       <div class="row"><button id="bRelEnte">Relatório do município</button><button id="bRelComp">Relatório comparativo</button></div>
-      <p class="note">O relatório do município reúne gestão fiscal, execução orçamentária e balanços anuais. O comparativo usa o grupo da aba Comparar. Saem com nome, matrícula e data definidos em Configurações. Use "Salvar como PDF" na janela de impressão.</p>
+      <p class="note">O relatório do município reúne gestão fiscal, execução orçamentária e balanços anuais. O comparativo usa o grupo da aba Análise comparativa. Saem com nome, matrícula e data definidos em Configurações. Use "Salvar como PDF" na janela de impressão.</p>
     </div>
     <div class="card">
       <h2>Planilhas (CSV para Excel, separador ;)</h2>
@@ -924,6 +931,7 @@ function sugerir(ente, crit){
     cand.forEach(function(c){ SUG[c.e.id] = nf0.format(c.e.pop) + ' hab.' + (c.pc ? ' · PIB per capita R$ ' + nf0.format(c.pc) : ' · sem PIB no IBGE') + (c.rg ? ' · mesorregião ' + c.rg + (c.mesma ? ' (mesma)' : '') : ''); });
     COMP = [ente.id].concat(cand.map(function(c){ return c.e.id; }));
     renderChips();
+    if (S.ente && S.ente.id === ente.id) comparar();
     var nCrit = {eq:'mesma UF, com prioridade para a mesorregião ' + r0[1] + ', população e PIB per capita mais próximos', reg:'mesorregião ' + r0[1] + ' (IBGE), por população e PIB per capita próximos', pop:'mesma UF, população mais próxima', pib:'mesma UF, PIB per capita mais próximo'}[crit];
     $('sugNota').innerHTML = 'Grupo sugerido automaticamente: ' + esc(nCrit) + '. Fontes: população do Siconfi; PIB municipal de ' + esc(ib.ano) + ' e regiões do IBGE. Passe o mouse sobre cada município para ver os dados. Você pode adicionar ou remover municípios à vontade.';
   }).catch(function(e){ $('sugNota').textContent = 'Não consegui consultar o IBGE agora (' + (e.message || e) + '). Monte o grupo manualmente.'; });
@@ -952,7 +960,9 @@ function comparar(){
   var ano = +$('cmpAno').value;
   $('bComparar').disabled = true;
   $('tFicha').innerHTML = '<p class="note">Lendo a DCA de ' + ano + ', o RREO do 6º bimestre e a MSC de dezembro de ' + COMP.length + ' municípios…</p>';
+  var tok = S.compTok = (S.compTok || 0) + 1;
   pool(COMP.map(function(id){ return function(){ return dadosExerc(id, ano); }; }), 3).then(function(res){
+    if (tok !== S.compTok) return;
     S.comp = res.map(function(x, i){ return x && !x.erro ? x : {id:COMP[i]}; });
     S.compAno = ano;
     calcPadroes(); renderComp();
@@ -1008,6 +1018,17 @@ function renderComp(){
   var ct = contagem(x);
   $('cmpResumo').innerHTML = kpiS('Nota média do perfil', ct.media == null ? '—' : nf2.format(ct.media), 'Escala de 1 (Insatisfatório) a 5 (Ótimo) · ' + ct.n + ' índices classificados') +
     ['O','B','S','R','I'].map(function(k){ return '<div class="card kpi"><div class="lbl">' + PERFIS[k].n + '</div><div class="val" style="color:' + PERFIS[k].c + '">' + ct.c[k] + '</div><div class="lim">índices</div></div>'; }).join('');
+  var lst = TCE.map(function(t){ var v = t.get(x), pf = perfil(t, v); return {t:t, v:v, pf:pf}; }).filter(function(o){ return o.pf && o.pf.k; });
+  var fortes = lst.filter(function(o){ return o.pf.k === 'O' || o.pf.k === 'B'; }).sort(function(a, b){ return b.pf.v * b.t.dir - a.pf.v * a.t.dir; }).slice(0, 5);
+  var fracos = lst.filter(function(o){ return o.pf.k === 'I' || o.pf.k === 'R'; }).sort(function(a, b){ return a.pf.v * a.t.dir - b.pf.v * b.t.dir; }).slice(0, 5);
+  var li = function(o){ return '<li>' + chipP(o.pf) + ' <b>' + esc(o.t.n) + '</b>: ' + o.t.f(o.v) + ' contra padrão de ' + o.t.f(S.padrao[o.t.k]) + ' (' + varTxtP(o.pf) + ')</li>'; };
+  $('cmpDest').innerHTML = '<p class="note" style="margin:0 0 4px">Onde ' + esc(e.nome) + ' se sai melhor que o grupo</p>' + (fortes.length ? '<ul class="dest">' + fortes.map(li).join('') + '</ul>' : '<p class="note">Nenhum índice Bom ou Ótimo.</p>') +
+    '<p class="note" style="margin:12px 0 4px">Onde fica atrás do grupo</p>' + (fracos.length ? '<ul class="dest">' + fracos.map(li).join('') + '</ul>' : '<p class="note">Nenhum índice Razoável ou Insatisfatório.</p>');
+  var rk = S.comp.map(function(c){ var ct2 = contagem(c); return {c:c, m:ct2.media, ct:ct2}; }).sort(function(a, b){ return (b.m == null ? -1 : b.m) - (a.m == null ? -1 : a.m); });
+  $('cmpRank').innerHTML = '<table><thead><tr><th>#</th><th>Município</th><th>Nota</th>' + ['O','B','S','R','I'].map(function(k){ return '<th title="' + PERFIS[k].n + '">' + k + '</th>'; }).join('') + '</tr></thead><tbody>' +
+    rk.map(function(r, i){ var en = BYID[r.c.id] || {nome:r.c.id}; var me = r.c.id === x.id; return '<tr' + (me ? ' style="background:#eaf2fb;font-weight:650"' : '') + '><td>' + (i + 1) + 'º</td><td class="txt">' + esc(en.nome) + (me ? ' ◀' : '') + '</td><td>' + (r.m == null ? '—' : nf2.format(r.m)) + '</td>' + ['O','B','S','R','I'].map(function(k){ return '<td>' + r.ct.c[k] + '</td>'; }).join('') + '</tr>'; }).join('') +
+    '</tbody></table><p class="note">Nota média dos perfis de 1 (Insatisfatório) a 5 (Ótimo), calculada para cada município contra o mesmo padrão do grupo.</p>';
+  $('cmpSub').textContent = 'Referência: ' + nomeUF(e) + ' · exercício ' + S.compAno + ' · grupo de ' + S.comp.length + ' municípios · metodologia ECG/TCE-RJ.';
   // matriz
   var head = '<tr><th>Indicador</th><th>Padrão</th>' + S.comp.map(function(c){ var en = BYID[c.id] || {nome:c.id}; return '<th>' + esc(en.nome) + '</th>'; }).join('') + '</tr>';
   var body = '';
@@ -1110,7 +1131,7 @@ function relEnte(){
   imprimir(h);
 }
 function relComp(){
-  if (!S.comp.length || !S.padrao) return xmsg('Rode a análise na aba Comparar (TCE-RJ) primeiro.');
+  if (!S.comp.length || !S.padrao) return xmsg('Rode a análise na aba Análise comparativa primeiro.');
   var hoje = new Date().toLocaleDateString('pt-BR'), x = refX(), e = BYID[x.id] || {nome:x.id, uf:''}, ct = contagem(x);
   var nomes = S.comp.map(function(c){ return (BYID[c.id] || {}).nome; }).join(', ');
   var h = '<h1>Análise das demonstrações contábeis · ' + esc(nomeUF(e)) + ' · exercício ' + S.compAno + '</h1>';
@@ -1221,7 +1242,7 @@ function abrir(v){
   if (v === 'msc' && S.ente && !S.msc && $('mMes').value) consultarMsc();
 }
 $('tabs').addEventListener('click', function(ev){ var v = ev.target.getAttribute('data-v'); if (v){ abrir(v); if (v !== 'uso') registrar('aba', {aba:v}); } });
-$('fBusca').addEventListener('submit', function(ev){ ev.preventDefault(); var e = findEnte($('qEnte').value); if (e){ abrir('painel'); carregar(e); registrar('municipio', {origem:'busca'}); } else msg('Escolha um município da lista (ex.: "Campos dos Goytacazes - RJ").'); });
+$('fBusca').addEventListener('submit', function(ev){ ev.preventDefault(); var e = findEnte($('qEnte').value); if (e){ carregar(e); registrar('municipio', {origem:'busca'}); } else msg('Escolha um município da lista (ex.: "Campos dos Goytacazes - RJ").'); });
 $('bAdd').addEventListener('click', function(){ var e = findEnte($('qComp').value); if (e && COMP.indexOf(e.id) < 0){ COMP.push(e.id); renderChips(); } $('qComp').value = ''; });
 $('qComp').addEventListener('keydown', function(ev){ if (ev.key === 'Enter'){ ev.preventDefault(); $('bAdd').click(); } });
 $('chips').addEventListener('click', function(ev){ var id = ev.target.getAttribute('data-rm'); if (id){ COMP = COMP.filter(function(x){ return String(x) !== id; }); renderChips(); } });
@@ -1277,7 +1298,7 @@ function iniciar(){
 }
 $('cProxy').value = LS.get('siconfi_proxy', DEFAULT_PROXY); $('cNome').value = LS.get('siconfi_nome',''); $('cMat').value = LS.get('siconfi_mat','');
 modo(); mostraIdent();
-var h0 = location.hash.replace('#',''); if (VIEWS.indexOf(h0) >= 0 && h0 !== 'msc') abrir(h0);
+var h0 = location.hash.replace('#',''); if (VIEWS.indexOf(h0) >= 0 && h0 !== 'msc') abrir(h0); else abrir('comparar');
 if (h0 === 'uso' && LS.get('pf_admin','')) lerUso();
 window.addEventListener('hashchange', function(){ if (location.hash === '#uso'){ abrir('uso'); $('ident').classList.remove('on'); if (LS.get('pf_admin','')) lerUso(); } });
 document.addEventListener('keydown', function(ev){ if (ev.ctrlKey && ev.shiftKey && !ev.altKey && (ev.key === 'U' || ev.key === 'u')){ ev.preventDefault(); if (location.hash === '#uso') abrir('uso'); else location.hash = 'uso'; } });
