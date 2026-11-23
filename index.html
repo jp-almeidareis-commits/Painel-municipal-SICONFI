@@ -446,6 +446,12 @@ function filtra(ents, kind, poder){ return ents.filter(function(x){ return x.kin
 function rgf(id, e){
   return api('rgf',{an_exercicio:e.ano, in_periodicidade:e.per, nr_periodo:e.p, co_tipo_demonstrativo:e.tipo, co_esfera:'M', co_poder:e.poder, id_ente:id});
 }
+/* Alguns municípios repetem a linha no Anexo 14 (ex.: uma linha parcial antes do total); fica com o maior valor */
+function pickMax(items, anexo, reConta, col){
+  var m = null;
+  items.forEach(function(x){ if (x.anexo.indexOf(anexo) >= 0 && reConta.test(x.conta) && (typeof col === 'string' ? x.coluna === col : col.test(x.coluna))){ var v = +x.valor; if (m == null || v > m) m = v; } });
+  return m;
+}
 function pick(items, anexo, reConta, col){
   for (var i = 0; i < items.length; i++){
     var x = items[i];
@@ -524,11 +530,11 @@ function parseRREO(items, e){
   r.prevIni = pick(items, A14, /^Previs.o Inicial/i, ATE);
   r.prev = pick(items, A14, /^Previs.o Atualizada/i, ATE);
   r.rec = pick(items, A14, /^Receitas Realizadas/i, ATE);
-  r.dotIni = pick(items, A14, /^Dota..o Inicial/i, ATE);
-  r.dot = pick(items, A14, /^Dota..o Atualizada/i, ATE);
-  r.emp = pick(items, A14, /^Despesas Empenhadas/i, ATE);
-  r.liq = pick(items, A14, /^Despesas Liquidadas/i, ATE);
-  r.pag = pick(items, A14, /^Despesas Pagas/i, ATE);
+  r.dotIni = pickMax(items, A14, /^Dota..o Inicial/i, ATE);
+  r.dot = pickMax(items, A14, /^Dota..o Atualizada/i, ATE);
+  r.emp = pickMax(items, A14, /^Despesas Empenhadas/i, ATE);
+  r.liq = pickMax(items, A14, /^Despesas Liquidadas/i, ATE);
+  r.pag = pickMax(items, A14, /^Despesas Pagas/i, ATE);
   r.sup = pick(items, A14, /^Super.vit Or/i, ATE);
   var def = pick(items, A14, /^D.ficit Or/i, ATE); if (r.sup == null && def != null) r.sup = -def;
   r.prim = pick(items, A14, /^RESULTADO PRIM/i, /./);
