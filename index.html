@@ -477,7 +477,8 @@ function parseRGF(items, e){
   r.dclPct = pick(items, A2, /^% da DCL/i, colRe);
   r.opcPct = pick(items, A4, /TOTAL CONSIDERADO/i, PCT);
   r.dcb = pick(items, A2, /^D.VIDA CONSOLIDADA - DC/i, colRe);
-  r.rclEnd = pick(items, A2, /^RECEITA CORRENTE L.QUIDA AJUSTADA/i, colRe);
+  r.rclEnd = pick(items, A2, /RECEITA CORRENTE L.QUIDA AJUSTADA/i, colRe);
+  r.dcPct = pick(items, A2, /^% da DC sobre a RCL/i, colRe);
   if (r.dtpPct == null && r.dtp != null && r.rclAj) r.dtpPct = r.dtp / r.rclAj * 100;
   if (r.limMax == null) r.limMax = e.poder === 'L' ? 6 : 54;
   var endM = (e.per === 'Q' ? 4 : 6) * e.p;
@@ -1075,7 +1076,7 @@ function stMin(v, min){ return v == null ? {c:'na'} : (v < min ? {c:'exc', t:'Ab
 var LEG = [
   {k:'pes', n:'Pessoal do Executivo (% RCL ajustada)', base:'LRF arts. 20, 22 e 59: máximo 54%, prudencial 51,3%, alerta 48,6%', src:'RGF Anexo 1', get:function(x){ return x.g ? x.g.dtpPct : null; }, st:function(v, x){ return statusDe(v, x.g && x.g.limMax || 54, true); }},
   {k:'dcl', n:'Dívida consolidada líquida (% RCL)', base:'Res. Senado 40/2001: até 120%; alerta em 90% do limite (LRF art. 59)', src:'RGF Anexo 2', get:function(x){ return x.g ? x.g.dclPct : null; }, st:function(v){ return v != null && v <= 0 ? {c:'ok', t:'Sem dívida líquida'} : statusDe(v, 120, false); }},
-  {k:'capagDc', n:'Endividamento da CAPAG (DC bruta ÷ RCL)', base:'Portaria MF 1.583/2023: A abaixo de 60%, B de 60% a 100%, C acima', src:'RGF Anexo 2', get:function(x){ var g = x.g; return g && g.dcb != null && g.rclEnd ? g.dcb / g.rclEnd * 100 : null; }, st:function(v){ return v == null ? {c:'na'} : (v < 60 ? {c:'ok', t:'Nota A'} : (v < 100 ? {c:'alerta', t:'Nota B'} : {c:'exc', t:'Nota C'})); }},
+  {k:'capagDc', n:'Endividamento da CAPAG (DC bruta ÷ RCL)', base:'Portaria MF 1.583/2023: A abaixo de 60%, B de 60% a 100%, C acima', src:'RGF Anexo 2', get:function(x){ var g = x.g; if (!g) return null; if (g.dcb != null && g.rclEnd) return g.dcb / g.rclEnd * 100; return g.dcPct; }, st:function(v){ return v == null ? {c:'na'} : (v < 60 ? {c:'ok', t:'Nota A'} : (v < 100 ? {c:'alerta', t:'Nota B'} : {c:'exc', t:'Nota C'})); }},
   {k:'corr', n:'Despesa corrente ÷ receita corrente', base:'CF art. 167-A: acima de 95% autoriza mecanismos de ajuste; entre 85% e 95% podem ser adotados', src:'DCA', get:function(x){ return p100(D(x).despCorr, D(x).recCorrLiq); }, st:function(v){ return v == null ? {c:'na'} : (v > 95 ? {c:'exc', t:'Acima de 95%'} : (v > 85 ? {c:'alerta', t:'Entre 85% e 95%'} : {c:'ok', t:'Até 85%'})); }},
   {k:'asps', n:'Saúde (ASPS, % impostos e transferências)', base:'LC 141/2012, art. 7º: mínimo 15%', src:'RREO Anexo 14', get:function(x){ return R(x).asps; }, st:function(v){ return stMin(v, 15); }},
   {k:'mde', n:'Educação (MDE, % impostos e transferências)', base:'CF art. 212: mínimo 25%', src:'RREO Anexo 14', get:function(x){ return R(x).mde; }, st:function(v){ return stMin(v, 25); }},
