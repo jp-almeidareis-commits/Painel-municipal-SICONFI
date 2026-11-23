@@ -154,8 +154,9 @@ code{background:#eef0f4;padding:1px 5px;border-radius:4px;font-size:12px}
 
 <section class="view" id="v-comparar">
   <div class="card">
-    <div class="row"><div style="flex:1;min-width:240px"><input type="search" id="qComp" list="dlEntes" placeholder="Adicionar município ao grupo…" autocomplete="off"></div><button class="sec" id="bAdd">Adicionar</button><button class="sec" id="bPreset">Norte Fluminense e similares</button><button class="sec" id="bLimpar">Limpar</button><label>Exercício <select id="cmpAno"></select></label><button id="bComparar">Analisar</button></div>
+    <div class="row"><div style="flex:1;min-width:240px"><input type="search" id="qComp" list="dlEntes" placeholder="Adicionar município ao grupo…" autocomplete="off"></div><button class="sec" id="bAdd">Adicionar</button><label>Sugestão por <select id="cmpCrit"><option value="eq">Região, população e PIB</option><option value="reg">Mesma região</option><option value="pop">População</option><option value="pib">PIB per capita</option></select></label><button class="sec" id="bSugerir">Sugerir 5 semelhantes</button><button class="sec" id="bLimpar">Limpar</button><label>Exercício <select id="cmpAno"></select></label><button id="bComparar">Analisar</button></div>
     <div class="chips" id="chips"></div>
+    <p class="note" id="sugNota"></p>
     <p class="note">Análise das demonstrações contábeis pela metodologia da ECG/TCE-RJ: cada índice é comparado com a média do grupo (padrão) e classificado de Insatisfatório a Ótimo. O município carregado no painel é o de referência e entra sempre no grupo.</p>
   </div>
   <div class="grid" id="cmpResumo" style="margin-top:12px"></div>
@@ -246,6 +247,7 @@ code{background:#eef0f4;padding:1px 5px;border-radius:4px;font-size:12px}
 var DEFAULT_PROXY = 'https://bdcwhalqakgtiajikoad.supabase.co/functions/v1/siconfi';
 var DEFAULT_ENTE = 3301009; // Campos dos Goytacazes
 var PRESET = [3301009,3302403,3305000,3304524,3300704,3303302,3303906,3306305,3303401,3305802];
+var SUG = {};
 var MESES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
 var MESES_L = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
 
@@ -545,6 +547,7 @@ var S = {ente:null, E:[], L:[], R:[], sel:0, rreo:null, dca:[], ents:[], comp:[]
 function carregar(ente){
   S.ente = ente; S.E = []; S.L = []; S.rreo = null; S.dca = []; S.msc = null; S.ents = [];
   LS.set('siconfi_ente', ente.id);
+  sugerir(ente);
   $('qEnte').value = nomeUF(ente);
   $('pMeta').innerHTML = 'Buscando relatórios de <b>' + esc(nomeUF(ente)) + '</b>…';
   $('rMeta').textContent = 'Carregando…'; $('dMeta').textContent = 'Carregando…';
@@ -882,9 +885,50 @@ var TCE = [
 function compIds(){ try { var v = JSON.parse(LS.get('siconfi_comp','null')); if (v && v.length) return v; } catch(e){} return PRESET.slice(); }
 var COMP = [];
 function renderChips(){
-  $('chips').innerHTML = COMP.map(function(id){ var e = BYID[id]; return '<span>' + esc(e ? nomeUF(e) : id) + '<b data-rm="' + id + '" title="Remover">×</b></span>'; }).join('');
+  $('chips').innerHTML = COMP.map(function(id){ var e = BYID[id]; return '<span' + (SUG[id] ? ' title="' + esc(SUG[id]) + '"' : '') + '>' + esc(e ? nomeUF(e) : id) + '<b data-rm="' + id + '" title="Remover">×</b></span>'; }).join('');
   LS.set('siconfi_comp', JSON.stringify(COMP));
 }
+/* ---------- Sugestão automática de municípios semelhantes (IBGE) ---------- */
+var IBGE = {};
+function ibgeUF(cuf){
+  if (IBGE[cuf]) return IBGE[cuf];
+  var k = 'pf_ibge2_' + cuf;
+  try { var c = JSON.parse(LS.get(k, 'null')); if (c && c.t > Date.now() - 30 * 864e5) return (IBGE[cuf] = Promise.resolve(c)); } catch(e){}
+  var pLoc = fetch('https://servicodados.ibge.gov.br/api/v1/localidades/estados/' + cuf + '/municipios').then(function(r){ return r.json(); });
+  var pPib = fetch('https://servicodados.ibge.gov.br/api/v3/agregados/5938/periodos/-1/variaveis/37?localidades=N6[N3[' + cuf + ']]').then(function(r){ return r.json(); });
+  return (IBGE[cuf] = Promise.all([pLoc, pPib]).then(function(rs){
+    var reg = {}, pib = {}, ano = '';
+    rs[0].forEach(function(m){ var me = m.microrregiao && m.microrregiao.mesorregiao; reg[m.id] = me ? [me.id, me.nome] : [0, '']; });
+    ((rs[1][0] || {}).resultados || []).forEach(function(r){ r.series.forEach(function(s){ var a = Object.keys(s.serie)[0]; ano = a; var v = +s.serie[a]; if (v > 0) pib[s.localidade.id] = v * 1000; }); });
+    var d = {t:Date.now(), reg:reg, pib:pib, ano:ano};
+    LS.set(k, JSON.stringify(d));
+    return d;
+  }).catch(function(e){ delete IBGE[cuf]; throw e; }));
+}
+function sugerir(ente, crit){
+  if (!ente) return Promise.resolve();
+  crit = crit || $('cmpCrit').value;
+  var cuf = String(ente.id).slice(0, 2);
+  $('sugNota').textContent = 'Buscando municípios semelhantes no IBGE…';
+  return ibgeUF(cuf).then(function(ib){
+    var r0 = ib.reg[ente.id] || [0, ''], pc0 = ib.pib[ente.id] && ente.pop ? ib.pib[ente.id] / ente.pop : null;
+    var cand = ENTES.filter(function(e){ return e.id !== ente.id && String(e.id).slice(0, 2) === cuf && e.pop > 0; }).map(function(e){
+      var pc = ib.pib[e.id] ? ib.pib[e.id] / e.pop : null, rg = ib.reg[e.id] || [0, ''];
+      var lp = Math.abs(Math.log(e.pop / ente.pop)), lb = pc && pc0 ? Math.abs(Math.log(pc / pc0)) : 1.5, mesma = rg[0] && rg[0] === r0[0];
+      var dist = crit === 'pop' ? lp : crit === 'pib' ? lb : (lp + lb) * (mesma ? 0.6 : 1);
+      if (crit === 'reg' && !mesma) dist += 100;
+      return {e:e, pc:pc, rg:rg[1], mesma:mesma, dist:dist};
+    }).sort(function(a, b){ return a.dist - b.dist; }).slice(0, 5);
+    SUG = {};
+    SUG[ente.id] = 'Referência · ' + nf0.format(ente.pop) + ' hab.' + (pc0 ? ' · PIB per capita R$ ' + nf0.format(pc0) : '') + (r0[1] ? ' · mesorregião ' + r0[1] : '');
+    cand.forEach(function(c){ SUG[c.e.id] = nf0.format(c.e.pop) + ' hab.' + (c.pc ? ' · PIB per capita R$ ' + nf0.format(c.pc) : ' · sem PIB no IBGE') + (c.rg ? ' · mesorregião ' + c.rg + (c.mesma ? ' (mesma)' : '') : ''); });
+    COMP = [ente.id].concat(cand.map(function(c){ return c.e.id; }));
+    renderChips();
+    var nCrit = {eq:'mesma UF, com prioridade para a mesorregião ' + r0[1] + ', população e PIB per capita mais próximos', reg:'mesorregião ' + r0[1] + ' (IBGE), por população e PIB per capita próximos', pop:'mesma UF, população mais próxima', pib:'mesma UF, PIB per capita mais próximo'}[crit];
+    $('sugNota').innerHTML = 'Grupo sugerido automaticamente: ' + esc(nCrit) + '. Fontes: população do Siconfi; PIB municipal de ' + esc(ib.ano) + ' e regiões do IBGE. Passe o mouse sobre cada município para ver os dados. Você pode adicionar ou remover municípios à vontade.';
+  }).catch(function(e){ $('sugNota').textContent = 'Não consegui consultar o IBGE agora (' + (e.message || e) + '). Monte o grupo manualmente.'; });
+}
+
 function daAno(id, ano){
   return api('msc_orcamentaria',{id_ente:id, an_referencia:ano, me_referencia:12, co_tipo_matriz:'MSCC', classe_conta:6, id_tv:'ending_balance'}).then(function(it){
     if (!it || !it.length) return null;
@@ -1113,7 +1157,7 @@ registrar.envia = function(ev){ var b = apiBase(); if (!b) return; try { fetch(b
 
 /* ---------- Aba Uso (restrita) ---------- */
 var USO = [];
-var ACOES = {acesso:'Abriu o painel', municipio:'Carregou município', aba:'Abriu aba', periodo_rgf:'Trocou período do RGF', periodo_rreo:'Trocou bimestre do RREO', msc:'Consultou a MSC', comparacao:'Rodou comparação TCE-RJ', exportacao:'Exportou planilha', copia:'Copiou tabela', relatorio:'Gerou relatório para impressão'};
+var ACOES = {acesso:'Abriu o painel', municipio:'Carregou município', aba:'Abriu aba', periodo_rgf:'Trocou período do RGF', periodo_rreo:'Trocou bimestre do RREO', msc:'Consultou a MSC', comparacao:'Rodou comparação TCE-RJ', exportacao:'Exportou planilha', copia:'Copiou tabela', relatorio:'Gerou relatório para impressão', sugestao:'Pediu sugestão de grupo'};
 function lerUso(){
   var chave = $('uChave').value.trim() || LS.get('pf_admin','');
   if (!chave){ $('uMsg').textContent = 'Informe a chave de administrador.'; return; }
@@ -1181,8 +1225,9 @@ $('fBusca').addEventListener('submit', function(ev){ ev.preventDefault(); var e 
 $('bAdd').addEventListener('click', function(){ var e = findEnte($('qComp').value); if (e && COMP.indexOf(e.id) < 0){ COMP.push(e.id); renderChips(); } $('qComp').value = ''; });
 $('qComp').addEventListener('keydown', function(ev){ if (ev.key === 'Enter'){ ev.preventDefault(); $('bAdd').click(); } });
 $('chips').addEventListener('click', function(ev){ var id = ev.target.getAttribute('data-rm'); if (id){ COMP = COMP.filter(function(x){ return String(x) !== id; }); renderChips(); } });
-$('bPreset').addEventListener('click', function(){ COMP = PRESET.slice(); renderChips(); });
-$('bLimpar').addEventListener('click', function(){ COMP = []; renderChips(); });
+$('bSugerir').addEventListener('click', function(){ sugerir(S.ente); registrar('sugestao', {criterio:$('cmpCrit').options[$('cmpCrit').selectedIndex].text}); });
+$('cmpCrit').addEventListener('change', function(){ sugerir(S.ente); });
+$('bLimpar').addEventListener('click', function(){ COMP = []; SUG = {}; $('sugNota').textContent = ''; renderChips(); });
 $('bComparar').addEventListener('click', function(){ comparar(); if (COMP.length >= 2) registrar('comparacao', {ano:+$('cmpAno').value, grupo:COMP.map(function(id){ return BYID[id] ? nomeUF(BYID[id]) : String(id); })}); });
 $('selInd').addEventListener('change', graficoComp);
 $('mAno').addEventListener('change', mesesMsc);
