@@ -587,6 +587,9 @@ function parseDCA(items, ano){
   d.transf = dv(items, IC, 'RO1.7.0.0.00.0.0', B);
   d.roy = soma(dv(items, IC, 'RO1.7.1.2.00.0.0', B), dv(items, IC, 'RO1.7.2.2.00.0.0', B));
   d.despCorr = dv(items, ID, 'DO3.0.00.00.00.00', EMP);
+  // DO3 inclui as intraorçamentárias (modalidade 91); a receita RO1 vem sem elas. Para comparar na mesma base, desconta DI3.x.91
+  d.intraCorr = soma(dv(items, ID, 'DI3.1.91.00.00.00', EMP), dv(items, ID, 'DI3.2.91.00.00.00', EMP), dv(items, ID, 'DI3.3.91.00.00.00', EMP));
+  d.despCorrEx = d.despCorr != null ? d.despCorr - (d.intraCorr || 0) : null;
   d.despCap = dv(items, ID, 'DO4.0.00.00.00.00', EMP);
   d.despTotal = soma(d.despCorr, d.despCap);
   d.pessoal = dv(items, ID, 'DO3.1.00.00.00.00', EMP);
@@ -967,7 +970,7 @@ var TCE = [
   {k:'endiv', g:3, n:'Endividamento geral (%)', fx:'Passivo exigível ÷ ativo total × 100', f:pct, dir:-1, get:function(x){ return p100(soma(D(x).pc, D(x).pnc), D(x).ativo); }},
   {k:'compExig', g:3, n:'Composição das exigibilidades (%)', fx:'Passivo circulante ÷ passivo exigível × 100', f:pct, dir:-1, get:function(x){ return p100(D(x).pc, soma(D(x).pc, D(x).pnc)); }},
   {k:'imobPL', g:3, n:'Imobilização do patrimônio líquido (%)', fx:'(Investimentos + imobilizado + intangível) ÷ patrimônio líquido × 100', f:pct, dir:-1, plNeg:true, get:function(x){ var d = D(x); return d.pl == null ? null : p100((d.inv || 0) + (d.imob || 0) + (d.intang || 0), d.pl); }},
-  {k:'compCorr', g:4, n:'Comprometimento da categoria econômica corrente (%)', fx:'Despesas correntes empenhadas ÷ receitas correntes arrecadadas × 100', f:pct, dir:-1, get:function(x){ return p100(D(x).despCorr, D(x).recCorrLiq); }},
+  {k:'compCorr', g:4, n:'Comprometimento da categoria econômica corrente (%)', fx:'Despesas correntes empenhadas (exceto intraorçamentárias) ÷ receitas correntes arrecadadas, líquidas das deduções × 100', f:pct, dir:-1, get:function(x){ return p100(D(x).despCorrEx, D(x).recCorrLiq); }},
   {k:'compCap', g:4, n:'Comprometimento da categoria econômica de capital (%)', fx:'Despesas de capital empenhadas ÷ receitas de capital arrecadadas × 100', f:pct, dir:-1, get:function(x){ return p100(D(x).despCap, D(x).recCap); }},
   {k:'pesDesp', g:4, n:'Gasto com pessoal sobre a despesa orçamentária (%)', fx:'Despesas com pessoal e encargos ÷ despesas empenhadas × 100', f:pct, dir:-1, get:function(x){ return p100(D(x).pessoal, D(x).despTotal); }},
   {k:'invDesp', g:4, n:'Investimento sobre a despesa orçamentária (%)', fx:'Despesas empenhadas com investimentos ÷ despesas empenhadas × 100', f:pct, dir:1, get:function(x){ return p100(D(x).invest, D(x).despTotal); }},
@@ -1077,7 +1080,7 @@ var LEG = [
   {k:'pes', n:'Pessoal do Executivo (% RCL ajustada)', base:'LRF arts. 20, 22 e 59: máximo 54%, prudencial 51,3%, alerta 48,6%', src:'RGF Anexo 1', get:function(x){ return x.g ? x.g.dtpPct : null; }, st:function(v){ return statusDe(v, 54, true); }},
   {k:'dcl', n:'Dívida consolidada líquida (% RCL)', base:'Res. Senado 40/2001: até 120%; alerta em 90% do limite (LRF art. 59)', src:'RGF Anexo 2', get:function(x){ return x.g ? x.g.dclPct : null; }, st:function(v){ return v != null && v <= 0 ? {c:'ok', t:'Sem dívida líquida'} : statusDe(v, 120, false); }},
   {k:'capagDc', n:'Endividamento da CAPAG (DC bruta ÷ RCL)', base:'Portaria MF 1.583/2023: A abaixo de 60%, B de 60% a 100%, C acima', src:'RGF Anexo 2', get:function(x){ var g = x.g; if (!g) return null; if (g.dcb != null && g.rclEnd) return g.dcb / g.rclEnd * 100; return g.dcPct; }, st:function(v){ return v == null ? {c:'na'} : (v < 60 ? {c:'ok', t:'Nota A'} : (v < 100 ? {c:'alerta', t:'Nota B'} : {c:'exc', t:'Nota C'})); }},
-  {k:'corr', n:'Despesa corrente ÷ receita corrente', base:'CF art. 167-A: acima de 95% autoriza mecanismos de ajuste; entre 85% e 95% podem ser adotados', src:'DCA', get:function(x){ return p100(D(x).despCorr, D(x).recCorrLiq); }, st:function(v){ return v == null ? {c:'na'} : (v > 95 ? {c:'exc', t:'Acima de 95%'} : (v > 85 ? {c:'alerta', t:'Entre 85% e 95%'} : {c:'ok', t:'Até 85%'})); }},
+  {k:'corr', n:'Despesa corrente ÷ receita corrente', base:'CF art. 167-A: acima de 95% autoriza mecanismos de ajuste; entre 85% e 95% podem ser adotados', src:'DCA (exceto intraorçamentárias)', get:function(x){ return p100(D(x).despCorrEx, D(x).recCorrLiq); }, st:function(v){ return v == null ? {c:'na'} : (v > 95 ? {c:'exc', t:'Acima de 95%'} : (v > 85 ? {c:'alerta', t:'Entre 85% e 95%'} : {c:'ok', t:'Até 85%'})); }},
   {k:'asps', n:'Saúde (ASPS, % impostos e transferências)', base:'LC 141/2012, art. 7º: mínimo 15%', src:'RREO Anexo 14', get:function(x){ return R(x).asps; }, st:function(v){ return stMin(v, 15); }},
   {k:'mde', n:'Educação (MDE, % impostos e transferências)', base:'CF art. 212: mínimo 25%', src:'RREO Anexo 14', get:function(x){ return R(x).mde; }, st:function(v){ return stMin(v, 25); }},
   {k:'fundeb', n:'Fundeb na remuneração dos profissionais', base:'Lei 14.113/2020, art. 26: mínimo 70%', src:'RREO Anexo 14', get:function(x){ return R(x).fundeb; }, st:function(v){ return stMin(v, 70); }}
