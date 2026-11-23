@@ -91,7 +91,7 @@ code{background:#eef0f4;padding:1px 5px;border-radius:4px;font-size:12px}
   <div><h1>Painel Fiscal Municipal</h1><div class="sub">Dados abertos do Siconfi · Tesouro Nacional <span id="idTag" title="Alterar identificação"></span></div></div>
   <form class="search" id="fBusca"><input type="search" id="qEnte" list="dlEntes" placeholder="Município, ex.: Campos dos Goytacazes - RJ" autocomplete="off"><datalist id="dlEntes"></datalist><button>Carregar</button></form>
 </header>
-<nav id="tabs"><a data-v="painel" class="on">Gestão fiscal (RGF)</a><a data-v="mensal">Pessoal mês a mês</a><a data-v="rreo">Execução orçamentária (RREO)</a><a data-v="dca">Balanço anual (DCA)</a><a data-v="msc">Contabilidade (MSC)</a><a data-v="comparar">Comparar (TCE-RJ)</a><a data-v="relatorios">Relatórios e exportação</a><a data-v="config">Configurações</a><a data-v="uso" id="tabUso" hidden>Uso</a></nav>
+<nav id="tabs"><a data-v="painel" class="on">Gestão fiscal (RGF)</a><a data-v="mensal">Pessoal mês a mês</a><a data-v="rreo">Execução orçamentária (RREO)</a><a data-v="dca">Balanço anual (DCA)</a><a data-v="msc">Contabilidade (MSC)</a><a data-v="comparar">Comparar (TCE-RJ)</a><a data-v="relatorios">Relatórios e exportação</a><a data-v="config">Configurações</a></nav>
 <main>
 <div id="msg"></div>
 
@@ -1167,7 +1167,7 @@ function lerUso(){
   fetch(apiBase() + 'uso' + desde, {headers:{'x-admin-key':chave}, cache:'no-store'}).then(function(r){
     return r.json().then(function(j){ if (!r.ok) throw new Error(j.error || ('Erro ' + r.status)); return j; });
   }).then(function(j){
-    LS.set('pf_admin', chave); $('uChave').value = ''; $('tabUso').hidden = false;
+    LS.set('pf_admin', chave); $('uChave').value = '';
     USO = j.items || []; $('uMsg').textContent = USO.length + ' registros.'; renderUso();
   }).catch(function(e){ $('uMsg').textContent = e.message === 'Chave inválida' ? 'Chave inválida.' : 'Falha: ' + e.message; if (e.message === 'Chave inválida') LS.set('pf_admin',''); })
     .then(function(){ $('bUso').disabled = false; });
@@ -1277,10 +1277,10 @@ function iniciar(){
 }
 $('cProxy').value = LS.get('siconfi_proxy', DEFAULT_PROXY); $('cNome').value = LS.get('siconfi_nome',''); $('cMat').value = LS.get('siconfi_mat','');
 modo(); mostraIdent();
-if (LS.get('pf_admin','') || location.hash === '#uso') $('tabUso').hidden = false;
 var h0 = location.hash.replace('#',''); if (VIEWS.indexOf(h0) >= 0 && h0 !== 'msc') abrir(h0);
 if (h0 === 'uso' && LS.get('pf_admin','')) lerUso();
-window.addEventListener('hashchange', function(){ if (location.hash === '#uso'){ $('tabUso').hidden = false; abrir('uso'); $('ident').classList.remove('on'); } });
+window.addEventListener('hashchange', function(){ if (location.hash === '#uso'){ abrir('uso'); $('ident').classList.remove('on'); if (LS.get('pf_admin','')) lerUso(); } });
+document.addEventListener('keydown', function(ev){ if (ev.ctrlKey && ev.shiftKey && !ev.altKey && (ev.key === 'U' || ev.key === 'u')){ ev.preventDefault(); if (location.hash === '#uso') abrir('uso'); else location.hash = 'uso'; } });
 if (!ident() && h0 !== 'uso') abreIdent();
 registrar('acesso', {});
 iniciar();
