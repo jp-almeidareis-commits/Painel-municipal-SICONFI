@@ -71,6 +71,7 @@ tr.click{cursor:pointer}tr.click:hover td{background:#f4f8fd}
 .form{max-width:640px}
 .form label{display:block;margin:14px 0 4px;font-weight:600;font-size:13px}
 code{background:#eef0f4;padding:1px 5px;border-radius:4px;font-size:12px}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:middle}
 #print{display:none;font-size:11.5px;color:#000}
 #print h1{font-size:18px;margin:0 0 4px}
 #print h2{font-size:14px;margin:18px 0 6px;border-bottom:1px solid #999;padding-bottom:3px}
@@ -184,7 +185,7 @@ body.tom-servidor .g{border:0;cursor:auto}
 <section class="view" id="v-comparar">
   <div class="card">
     <div class="cmpHead"><h2>Análise comparativa</h2><p class="note" id="cmpSub" style="margin:0 0 12px">Compare o município com outros de perfil parecido, pelos índices das demonstrações contábeis na metodologia da ECG/TCE-RJ.</p></div>
-    <div class="row"><div style="flex:1;min-width:240px"><input type="search" id="qComp" list="dlComp" placeholder="Adicionar município (3 letras ou mais)…" autocomplete="off"><datalist id="dlComp"></datalist></div><button class="sec" id="bAdd">Adicionar</button><label>Sugestão por <select id="cmpCrit"><option value="eq">Região, população e PIB</option><option value="reg">Mesma região</option><option value="pop">População</option><option value="pib">PIB per capita</option></select></label><button class="sec" id="bSugerir">Sugerir 5 semelhantes</button><button class="sec" id="bLimpar">Limpar</button><label>Exercício <select id="cmpAno"></select></label><button id="bComparar">Analisar</button><button class="sec" id="bPdfComp">Exportar PDF</button></div>
+    <div class="row"><div style="flex:1;min-width:240px"><input type="search" id="qComp" list="dlComp" placeholder="Adicionar município (3 letras ou mais)…" autocomplete="off"><datalist id="dlComp"></datalist></div><button class="sec" id="bAdd">Adicionar</button><label>Sugestão por <select id="cmpCrit"><option value="eq">Região, população e PIB</option><option value="reg">Mesma região</option><option value="pop">População</option><option value="pib">PIB per capita</option></select></label><button class="sec" id="bSugerir">Sugerir 5 semelhantes</button><button class="sec" id="bLimpar">Limpar</button><label>Exercício <select id="cmpAno"></select></label><label title="Média: como no curso da ECG/TCE-RJ. Mediana: como nos índices-padrão de Matarazzo, menos sensível a valores extremos.">Padrão <select id="cmpPadrao"><option value="media">Média do grupo</option><option value="mediana">Mediana do grupo</option></select></label><button id="bComparar">Analisar</button><button class="sec" id="bPdfComp">Exportar PDF</button></div>
     <div class="chips" id="chips"></div>
     <p class="note" id="sugNota"></p>
     <p class="note">Análise das demonstrações contábeis pela metodologia da ECG/TCE-RJ: cada índice é comparado com a média do grupo (padrão) e classificado de Insatisfatório a Ótimo. O município carregado no painel é o de referência e entra sempre no grupo.</p>
@@ -195,6 +196,7 @@ body.tom-servidor .g{border:0;cursor:auto}
     <div class="card"><h2>Pontos fortes e de atenção</h2><div id="cmpDest"><p class="note">Aparecem depois da análise.</p></div></div>
     <div class="card"><h2>Ranking do grupo pela nota média</h2><div class="tbl" id="cmpRank"><p class="note">Aparece depois da análise.</p></div></div>
   </div>
+  <div class="card" style="margin-top:12px"><h2>Limites legais e mínimos constitucionais</h2><p class="note" style="margin-top:0">LRF, Constituição, LC 141/2012, Lei do Fundeb e indicador de endividamento da CAPAG (STN), lidos do RGF do fim do exercício, do RREO do 6º bimestre e da DCA.</p><div class="tbl" id="tLegal"><p class="note">Aparece depois da análise.</p></div></div>
   <div class="two">
     <div class="card"><h2 id="fichaTit">Ficha do município</h2><div class="tbl" id="tFicha" style="max-height:900px"><p class="note">Monte o grupo, escolha o exercício e clique em Analisar.</p></div></div>
     <div class="card"><div class="row" style="margin-bottom:8px"><select id="selInd" style="max-width:100%"></select></div><div class="chart" id="cmpChartBox"><canvas id="chComp"></canvas></div><p class="note" id="cmpNota"></p></div>
@@ -474,6 +476,8 @@ function parseRGF(items, e){
   r.dcl = pick(items, A2, /^D.VIDA CONSOLIDADA L.QUIDA/i, colRe);
   r.dclPct = pick(items, A2, /^% da DCL/i, colRe);
   r.opcPct = pick(items, A4, /TOTAL CONSIDERADO/i, PCT);
+  r.dcb = pick(items, A2, /^D.VIDA CONSOLIDADA - DC/i, colRe);
+  r.rclEnd = pick(items, A2, /^RECEITA CORRENTE L.QUIDA AJUSTADA/i, colRe);
   if (r.dtpPct == null && r.dtp != null && r.rclAj) r.dtpPct = r.dtp / r.rclAj * 100;
   if (r.limMax == null) r.limMax = e.poder === 'L' ? 6 : 54;
   var endM = (e.per === 'Q' ? 4 : 6) * e.p;
@@ -529,6 +533,10 @@ function parseRREO(items, e){
   r.prim = pick(items, A14, /^RESULTADO PRIM/i, /./);
   r.nom = pick(items, A14, /^RESULTADO NOMINAL/i, /./);
   r.rcl = pick(items, A14, /^Receita Corrente L.quida$/i, ATE);
+  r.rclEnd = pick(items, A14, /Limites de Endividamento/i, ATE);
+  r.mde = pick(items, A14, /^M.nimo Anual de <18% \/ 25%>/i, /% Aplicado/i);
+  r.fundeb = pick(items, A14, /^M.nimo Anual de 70% do FUNDEB/i, /% Aplicado/i);
+  r.asps = pick(items, A14, /^Despesas com A..es e Servi.os P.blicos de Sa.de/i, /% Aplicado/i);
   r.rpp = {insc: pick(items, A14, /^RESTOS A PAGAR PROCESSADOS/i, /Inscri/i), pag: pick(items, A14, /^RESTOS A PAGAR PROCESSADOS/i, /Pagamento/i), saldo: pick(items, A14, /^RESTOS A PAGAR PROCESSADOS/i, /Saldo/i)};
   r.rpn = {insc: pick(items, A14, /^RESTOS A PAGAR N.O PROCESSADOS/i, /Inscri/i), pag: pick(items, A14, /^RESTOS A PAGAR N.O PROCESSADOS/i, /Pagamento/i), saldo: pick(items, A14, /^RESTOS A PAGAR N.O PROCESSADOS/i, /Saldo/i)};
   var A3 = 'Anexo 03';
@@ -1034,14 +1042,19 @@ function daAno(id, ano){
     return s;
   });
 }
+/* RGF do Executivo no fim do exercício: 3º quadrimestre ou, no simplificado, 2º semestre */
+function rgfAno(id, ano){
+  return rgfPeer(id, {ano:ano, per:'Q', p:3, tipo:'RGF'}).then(function(x){ return x && !x.vazio ? x : rgfPeer(id, {ano:ano, per:'S', p:2, tipo:'RGF Simplificado'}); });
+}
 function dadosExerc(id, ano){
   var pop = BYID[id] ? BYID[id].pop : null;
   return Promise.all([
     dcaAno(id, ano).catch(function(){ return null; }),
     rreoA14(id, ano, 6).then(function(it){ var r = parseRREO(it, {ano:ano, p:6}); return r.rec != null ? r : null; }).catch(function(){ return null; }),
     daAno(id, ano).catch(function(){ return null; }),
-    rreoA14(id, ano + 1, 1).then(function(it){ var r = parseRREO(it, {ano:ano + 1, p:1}); return r.rpp && r.rpp.insc > 0 ? r.rpp.insc : null; }).catch(function(){ return null; })
-  ]).then(function(rs){ if (rs[0] && rs[3] != null) rs[0].rpp = rs[3]; if (rs[0] && !(rs[0].rpp > 0)) rs[0].rpp = null; return {id:id, pop:pop, d:rs[0], r:rs[1], da:rs[2]}; });
+    rreoA14(id, ano + 1, 1).then(function(it){ var r = parseRREO(it, {ano:ano + 1, p:1}); return r.rpp && r.rpp.insc > 0 ? r.rpp.insc : null; }).catch(function(){ return null; }),
+    rgfAno(id, ano).catch(function(){ return null; })
+  ]).then(function(rs){ if (rs[0] && rs[3] != null) rs[0].rpp = rs[3]; if (rs[0] && !(rs[0].rpp > 0)) rs[0].rpp = null; return {id:id, pop:pop, d:rs[0], r:rs[1], da:rs[2], g:rs[4] && !rs[4].vazio ? rs[4] : null}; });
 }
 function comparar(){
   if (S.ente && COMP.indexOf(S.ente.id) < 0){ COMP.unshift(S.ente.id); renderChips(); }
@@ -1057,12 +1070,36 @@ function comparar(){
     calcPadroes(); renderComp();
   }).catch(erro).then(function(){ $('bComparar').disabled = false; });
 }
+/* ===== Parâmetros legais e da STN (classificação absoluta, não depende do grupo) ===== */
+function stMin(v, min){ return v == null ? {c:'na'} : (v < min ? {c:'exc', t:'Abaixo do mínimo'} : {c:'ok', t:'Cumpre o mínimo'}); }
+var LEG = [
+  {k:'pes', n:'Pessoal do Executivo (% RCL ajustada)', base:'LRF arts. 20, 22 e 59: máximo 54%, prudencial 51,3%, alerta 48,6%', src:'RGF Anexo 1', get:function(x){ return x.g ? x.g.dtpPct : null; }, st:function(v, x){ return statusDe(v, x.g && x.g.limMax || 54, true); }},
+  {k:'dcl', n:'Dívida consolidada líquida (% RCL)', base:'Res. Senado 40/2001: até 120%; alerta em 90% do limite (LRF art. 59)', src:'RGF Anexo 2', get:function(x){ return x.g ? x.g.dclPct : null; }, st:function(v){ return v != null && v <= 0 ? {c:'ok', t:'Sem dívida líquida'} : statusDe(v, 120, false); }},
+  {k:'capagDc', n:'Endividamento da CAPAG (DC bruta ÷ RCL)', base:'Portaria MF 1.583/2023: A abaixo de 60%, B de 60% a 100%, C acima', src:'RGF Anexo 2', get:function(x){ var g = x.g; return g && g.dcb != null && g.rclEnd ? g.dcb / g.rclEnd * 100 : null; }, st:function(v){ return v == null ? {c:'na'} : (v < 60 ? {c:'ok', t:'Nota A'} : (v < 100 ? {c:'alerta', t:'Nota B'} : {c:'exc', t:'Nota C'})); }},
+  {k:'corr', n:'Despesa corrente ÷ receita corrente', base:'CF art. 167-A: acima de 95% autoriza mecanismos de ajuste; entre 85% e 95% podem ser adotados', src:'DCA', get:function(x){ return p100(D(x).despCorr, D(x).recCorrLiq); }, st:function(v){ return v == null ? {c:'na'} : (v > 95 ? {c:'exc', t:'Acima de 95%'} : (v > 85 ? {c:'alerta', t:'Entre 85% e 95%'} : {c:'ok', t:'Até 85%'})); }},
+  {k:'asps', n:'Saúde (ASPS, % impostos e transferências)', base:'LC 141/2012, art. 7º: mínimo 15%', src:'RREO Anexo 14', get:function(x){ return R(x).asps; }, st:function(v){ return stMin(v, 15); }},
+  {k:'mde', n:'Educação (MDE, % impostos e transferências)', base:'CF art. 212: mínimo 25%', src:'RREO Anexo 14', get:function(x){ return R(x).mde; }, st:function(v){ return stMin(v, 25); }},
+  {k:'fundeb', n:'Fundeb na remuneração dos profissionais', base:'Lei 14.113/2020, art. 26: mínimo 70%', src:'RREO Anexo 14', get:function(x){ return R(x).fundeb; }, st:function(v){ return stMin(v, 70); }}
+];
+function legalHTML(){
+  if (!S.comp || !S.comp.length) return '';
+  var me = refX().id;
+  var h = '<table><thead><tr><th>Município</th>' + LEG.map(function(l){ return '<th title="' + esc(l.base + ' · fonte: ' + l.src) + '">' + esc(l.n) + '</th>'; }).join('') + '<th>Fora do parâmetro</th></tr></thead><tbody>';
+  S.comp.forEach(function(c){
+    var en = BYID[c.id] || {nome:c.id}, nf = 0;
+    h += '<tr' + (c.id === me ? ' style="background:#eaf2fb;font-weight:650"' : '') + '><td class="txt">' + esc(en.nome) + '</td>' + LEG.map(function(l){
+      var v = l.get(c), st = l.st(v, c); if (st.c === 'exc') nf++;
+      return '<td>' + (v == null ? '—' : '<span class="dot" style="background:' + COR[st.c] + '" title="' + esc(st.t || '') + '"></span>' + pct(v)) + '</td>';
+    }).join('') + '<td>' + nf + '</td></tr>';
+  });
+  return h + '</tbody></table><p class="note"><span class="dot" style="background:' + COR.ok + '"></span>dentro do parâmetro · <span class="dot" style="background:' + COR.alerta + '"></span>alerta (ou nota B na CAPAG) · <span class="dot" style="background:' + COR.prud + '"></span>prudencial · <span class="dot" style="background:' + COR.exc + '"></span>fora do limite ou abaixo do mínimo (ou nota C). Aqui não há comparação com o grupo: cada valor é avaliado pelo parâmetro da norma. Passe o mouse no cabeçalho para ver a norma e o anexo do Siconfi.</p>';
+}
 function valido(t, v){ return v != null && isFinite(v) && !(t.plNeg && v < 0); }
 function calcPadroes(){
   S.padrao = {};
   TCE.forEach(function(t){
     var v = S.comp.map(t.get).filter(function(x){ return valido(t, x); });
-    S.padrao[t.k] = v.length >= 2 ? v.reduce(function(a, b){ return a + b; }, 0) / v.length : null;
+    S.padrao[t.k] = v.length < 2 ? null : (S.tipoPadrao === 'mediana' ? medianaDe(v) : v.reduce(function(a, b){ return a + b; }, 0) / v.length);
   });
 }
 function perfil(t, v){
@@ -1084,7 +1121,7 @@ function chipP(pf, longo){
 function varTxtP(pf){ return pf && pf.v != null ? (pf.v > 0 ? '+' : '') + nf2.format(pf.v) + '%' : '—'; }
 function refX(){ var me = S.ente ? S.ente.id : null; return S.comp.find(function(x){ return x.id === me; }) || S.comp[0]; }
 function fichaHTML(x){
-  var h = '<table><thead><tr><th>Indicador</th><th>Calculado</th><th>Padrão (média)</th><th>Variação</th><th>Perfil</th></tr></thead><tbody>';
+  var h = '<table><thead><tr><th>Indicador</th><th>Calculado</th><th>Padrão (' + (S.tipoPadrao === 'mediana' ? 'mediana' : 'média') + ')</th><th>Variação</th><th>Perfil</th></tr></thead><tbody>';
   GRUPOS.forEach(function(g, gi){
     h += '<tr class="sec"><td colspan="5">' + (gi + 1) + '. ' + g + '</td></tr>';
     TCE.filter(function(t){ return t.g === gi; }).forEach(function(t){
@@ -1117,6 +1154,7 @@ function renderComp(){
   $('cmpRank').innerHTML = '<table><thead><tr><th>#</th><th>Município</th><th>Nota</th>' + ['O','B','S','R','I'].map(function(k){ return '<th title="' + PERFIS[k].n + '">' + k + '</th>'; }).join('') + '</tr></thead><tbody>' +
     rk.map(function(r, i){ var en = BYID[r.c.id] || {nome:r.c.id}; var me = r.c.id === x.id; return '<tr' + (me ? ' style="background:#eaf2fb;font-weight:650"' : '') + '><td>' + (i + 1) + 'º</td><td class="txt">' + esc(en.nome) + (me ? ' ◀' : '') + '</td><td>' + (r.m == null ? '—' : nf2.format(r.m)) + '</td>' + ['O','B','S','R','I'].map(function(k){ return '<td>' + r.ct.c[k] + '</td>'; }).join('') + '</tr>'; }).join('') +
     '</tbody></table><p class="note">Nota média dos perfis de 1 (Insatisfatório) a 5 (Ótimo), calculada para cada município contra o mesmo padrão do grupo.</p>';
+  $('tLegal').innerHTML = legalHTML();
   $('cmpEnt').innerHTML = entendaComp(x, e, rk, contagem(x)); $('cmpEntBox').hidden = false;
   $('cmpSub').textContent = 'Referência: ' + nomeUF(e) + ' · exercício ' + S.compAno + ' · grupo de ' + S.comp.length + ' municípios · metodologia ECG/TCE-RJ.';
   // matriz
@@ -1143,8 +1181,9 @@ function graficoComp(){
     options:{indexAxis:'y', maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{callbacks:{label:function(c){ var pf = perfil(t, c.parsed.x); return t.f(c.parsed.x) + (pf && pf.k ? ' · ' + PERFIS[pf.k].n + ' (' + varTxtP(pf) + ')' : ''); }}}}}});
   $('cmpNota').innerHTML = esc(t.fx) + ' · Padrão (média do grupo): <b>' + t.f(S.padrao[t.k]) + '</b> · ' + (t.dir > 0 ? 'quanto maior, melhor' : 'quanto menor, melhor') + ' · cores pelo perfil';
 }
-var METODO = '<p><b>Fonte da metodologia:</b> ECG/TCE-RJ, <i>Análise das Demonstrações Contábeis Aplicadas ao Setor Público</i> (2026). Os dados vêm do Siconfi: DCA do exercício, RREO do 6º bimestre e MSC de dezembro.</p>' +
-  '<p><b>Padrão:</b> média aritmética do índice entre os municípios do grupo escolhido. <b>Variação:</b> (índice calculado ÷ padrão − 1) × 100, como na HP12C (padrão ENTER calculado Δ%). <b>Perfil:</b> variação de até 10% para mais ou para menos = Satisfatório. De 10,01% a 30% = Bom, se a favor do sentido desejável do índice, ou Razoável, se contra. Acima de 30,01% = Ótimo ou Insatisfatório. Nota de 1 (Insatisfatório) a 5 (Ótimo).</p>' +
+var METODO = '<p><b>Duas leituras diferentes.</b> (1) <b>Limites legais e mínimos constitucionais:</b> cada valor é avaliado pelo parâmetro da norma, sem comparação com o grupo. Pessoal: LRF (LC 101/2000), arts. 19, 20, 22 e 59. Dívida consolidada líquida: Resolução do Senado 40/2001 (até 1,2 vez a RCL). Endividamento da CAPAG: Portaria Normativa MF 1.583/2023 e Portaria STN 217/2024 (dívida consolidada bruta ÷ RCL ajustada: A abaixo de 60%, B de 60% a 100%, C acima). Despesa corrente ÷ receita corrente: CF art. 167-A (EC 109/2021). Saúde: LC 141/2012, art. 7º (15%). Educação: CF art. 212 (25%). Fundeb: Lei 14.113/2020, art. 26 (70%). Os demonstrativos seguem o Manual de Demonstrativos Fiscais (MDF) da STN. A nota final da CAPAG também usa a poupança corrente (média de três exercícios) e a liquidez relativa por fonte de recursos, que não são calculadas aqui: a nota oficial é publicada pelo Tesouro Nacional. (2) <b>Análise das demonstrações contábeis (índices e quocientes):</b> compara o município com o grupo, como descrito abaixo.</p>' +
+  '<p><b>Fonte da metodologia:</b> ECG/TCE-RJ, <i>Análise das Demonstrações Contábeis Aplicadas ao Setor Público</i> (2026). O curso se apoia na Lei 4.320/1964, na LRF, no MCASP (11ª ed.) e no MDF (14ª ed.) da STN, nos quocientes de balanços públicos de Heilio Kohama (<i>Balanços Públicos: Teoria e Prática</i>) e no método de índices-padrão de Dante C. Matarazzo (<i>Análise Financeira de Balanços</i>), além do Índice Firjan de Gestão Fiscal. Os dados vêm do Siconfi: DCA do exercício, RREO do 6º bimestre e MSC de dezembro.</p>' +
+  '<p><b>Padrão:</b> por escolha, a média aritmética do índice entre os municípios do grupo (como no curso) ou a mediana (como nos índices-padrão de Matarazzo, que usa a distribuição do segmento e é menos sensível a valores extremos). <b>Variação:</b> (índice calculado ÷ padrão − 1) × 100, como na HP12C (padrão ENTER calculado Δ%). <b>Perfil:</b> variação de até 10% para mais ou para menos = Satisfatório. De 10,01% a 30% = Bom, se a favor do sentido desejável do índice, ou Razoável, se contra. Acima de 30,01% = Ótimo ou Insatisfatório. Nota de 1 (Insatisfatório) a 5 (Ótimo).</p>' +
   '<p><b>Sentido de cada índice:</b> receitas e despesas por habitante, liquidez, solvência, investimento, receitas próprias, autonomia e execução da receita e da despesa: quanto maior, melhor. Endividamento, composição das exigibilidades, imobilização do PL, comprometimento das categorias econômicas, pessoal, resultado da execução, amortização e encargos da dívida: quanto menor, melhor.</p>' +
   '<p><b>Adaptações aos dados disponíveis:</b> o PIB per capita não está no Siconfi e foi omitido. Saúde e educação usam a despesa empenhada nas funções 10 e 12, e não a ASPS e a MDE apuradas no SIOPS e no SIOPE. O repasse ao Legislativo usa a despesa da função 01 – Legislativa. A dívida ativa arrecadada vem das naturezas de receita de dívida ativa (tipos 3 e 4) na MSC de dezembro. Depósitos de diversas origens correspondem aos valores restituíveis (2.1.8.8). Restos a pagar processados = saldo inscrito em 31/12, conforme o RREO do 1º bimestre do exercício seguinte (ou, na falta dele, calculado pela DCA). Com PL negativo, a imobilização do PL não é classificada e fica fora do padrão. Um índice também não é classificado quando o padrão é zero ou negativo.</p>' +
   '<p><b>Observação:</b> as tabelas de exemplo do manual têm alguns perfis que não seguem a própria regra, como a execução da despesa. Aqui a regra é aplicada de forma uniforme, e para a execução da despesa vale o texto do manual (percentuais elevados indicam execução integral).</p>';
@@ -1244,10 +1283,11 @@ function relComp(){
   var hoje = new Date().toLocaleDateString('pt-BR'), x = refX(), e = BYID[x.id] || {nome:x.id, uf:''}, ct = contagem(x);
   var nomes = S.comp.map(function(c){ return (BYID[c.id] || {}).nome; }).join(', ');
   var h = '<style>@page{size:A4 landscape;margin:10mm}#print .mx{font-size:8.5px;page-break-inside:avoid}#print .mx td,#print .mx th{padding:2px 3px}</style><h1>Análise das demonstrações contábeis · ' + esc(nomeUF(e)) + ' · exercício ' + S.compAno + '</h1>';
-  h += '<p>Metodologia ECG/TCE-RJ. Grupo de comparação (padrão = média): ' + esc(nomes) + '. Fonte: Siconfi/STN (DCA, RREO do 6º bimestre e MSC de dezembro), consulta em ' + hoje + '.</p>';
+  h += '<p>Metodologia ECG/TCE-RJ. Grupo de comparação (padrão = ' + (S.tipoPadrao === 'mediana' ? 'mediana' : 'média') + '): ' + esc(nomes) + '. Fonte: Siconfi/STN (DCA, RREO do 6º bimestre e MSC de dezembro), consulta em ' + hoje + '.</p>';
   h += '<p><b>Resumo do perfil:</b> nota média ' + (ct.media == null ? '—' : nf2.format(ct.media)) + ' (1 a 5) · ' + ['O','B','S','R','I'].map(function(k){ return ct.c[k] + ' ' + PERFIS[k].n.toLowerCase(); }).join(', ') + '.</p>';
   h += '<h2>Ficha do município</h2>' + fichaHTML(x);
-  if ($('cmpRank').querySelector('table')) h += '<h2>Ranking do grupo</h2>' + limpaTab($('cmpRank').querySelector('table')).outerHTML;
+  if ($('tLegal').querySelector('table')) h += '<h2>Limites legais e mínimos constitucionais</h2>' + limpaTab($('tLegal').querySelector('table')).outerHTML + (($('tLegal').querySelector('.note') || {}).outerHTML || '');
+  if ($('cmpRank').querySelector('table')) h += '<h2>Ranking do grupo (metodologia ECG/TCE-RJ)</h2>' + limpaTab($('cmpRank').querySelector('table')).outerHTML;
   h += '<h2>Matriz do grupo</h2>' + matrizBlocos($('tComp').querySelector('table'), 7) + (($('tComp').querySelector('.note') || {}).outerHTML || '');
   h += '<h2>Metodologia</h2>' + METODO;
   var a = S.compAno, it = [];
@@ -1616,6 +1656,7 @@ $('cmpCrit').addEventListener('change', function(){ sugerir(S.ente); });
 $('bLimpar').addEventListener('click', function(){ COMP = []; SUG = {}; $('sugNota').textContent = ''; renderChips(); });
 $('bComparar').addEventListener('click', function(){ comparar(); if (COMP.length >= 2) registrar('comparacao', {ano:+$('cmpAno').value, grupo:COMP.map(function(id){ return BYID[id] ? nomeUF(BYID[id]) : String(id); })}); });
 $('selInd').addEventListener('change', graficoComp);
+$('cmpPadrao').addEventListener('change', function(){ S.tipoPadrao = this.value; if (S.comp && S.comp.length){ calcPadroes(); renderComp(); } });
 $('mAno').addEventListener('change', mesesMsc);
 ['pSel','mSel'].forEach(function(id){ $(id).addEventListener('change', function(){ S.sel = +this.value; $('pSel').value = $('mSel').value = this.value; limpaGrupo('rgf'); renderPainel(); renderMensal(); registrar('periodo_rgf', {periodo:this.options[this.selectedIndex].text}); }); });
 $('rSel').addEventListener('change', function(){ carregarRREO(+this.value); registrar('periodo_rreo', {periodo:this.options[this.selectedIndex].text}); });
